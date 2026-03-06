@@ -1,14 +1,17 @@
+using ClosedXML.Excel;
 using FileConverter.Application;
 using FileConverter.Domain.Enums;
 using FileConverter.Domain.Interfaces;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using UglyToad.PdfPig;
-using UglyToad.PdfPig.Content;
+using System.Text;
 
 namespace FileConverter.Infrastructure.Converters;
 
+/// <summary>
+/// Handles PDF text extraction (PDF → TXT) and text/spreadsheet → PDF.
+/// PDF → DOCX/DOC/ODT/RTF/HTML is handled by NpoiDocumentConverter (extract text first, write to target).
+/// Uses PdfPig for reading PDFs and shared PdfGenerationHelper for generating PDFs.
+/// </summary>
 public class PdfConverter : IFileConverter
 {
     public bool CanConvert(FileFormat source, FileFormat target)
@@ -17,9 +20,9 @@ public class PdfConverter : IFileConverter
         {
             (FileFormat.Txt, FileFormat.Pdf) => true,
             (FileFormat.Csv, FileFormat.Pdf) => true,
-            (FileFormat.Pdf, FileFormat.Txt) => true,
             (FileFormat.Xlsx, FileFormat.Pdf) => true,
             (FileFormat.Xls, FileFormat.Pdf) => true,
+            (FileFormat.Pdf, FileFormat.Txt) => true,
             _ => false
         };
     }
@@ -34,8 +37,9 @@ public class PdfConverter : IFileConverter
 
         var outputFileName = Path.GetFileNameWithoutExtension(inputPath) + SupportedConversions.GetExtension(targetFormat);
         var outputPath = Path.Combine(outputDirectory, outputFileName);
+        Directory.CreateDirectory(outputDirectory);
 
-        if (targetFormat == FileFormat.Txt && sourceFormat == FileFormat.Pdf)
+        if (sourceFormat == FileFormat.Pdf && targetFormat == FileFormat.Txt)
         {
             await ExtractPdfTextAsync(inputPath, outputPath, progress, cancellationToken);
         }
@@ -44,46 +48,40 @@ public class PdfConverter : IFileConverter
             await ConvertToPdfAsync(inputPath, outputPath, sourceFormat, options, progress, cancellationToken);
         }
 
+        progress?.Report(100);
         return outputPath;
     }
 
-    private async Task ExtractPdfTextAsync(string inputPath, string outputPath, IProgress<int>? progress, CancellationToken cancellationToken)
+    private static async Task ExtractPdfTextAsync(string inputPath, string outputPath, IProgress<int>? progress, CancellationToken ct)
     {
         progress?.Report(20);
 
         using var document = PdfDocument.Open(inputPath);
-        var textLines = new List<string>();
+        var sb = new StringBuilder();
         int totalPages = document.NumberOfPages;
 
         for (int i = 1; i <= totalPages; i++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
             var page = document.GetPage(i);
-            textLines.Add(page.Text);
-            textLines.Add(""); // Page separator
+            sb.AppendLine(page.Text);
+            if (totalPages > 1)
+                sb.AppendLine($"\n--- Page {i} ---\n");
             progress?.Report(20 + (int)(70.0 * i / totalPages));
         }
 
-        await File.WriteAllTextAsync(outputPath, string.Join(Environment.NewLine, textLines), cancellationToken);
-        progress?.Report(100);
+        await File.WriteAllTextAsync(outputPath, sb.ToString(), ct);
     }
 
-    private async Task ConvertToPdfAsync(string inputPath, string outputPath, FileFormat sourceFormat,
-        Dictionary<string, string> options, IProgress<int>? progress, CancellationToken cancellationToken)
+    private static async Task ConvertToPdfAsync(string inputPath, string outputPath, FileFormat sourceFormat,
+        Dictionary<string, string> options, IProgress<int>? progress, CancellationToken ct)
     {
-        var pageSize = GetPageSize(options);
-        var orientation = options.TryGetValue("orientation", out var o) && o.Equals("Landscape", StringComparison.OrdinalIgnoreCase);
-        float margin = options.TryGetValue("marginMm", out var m) && float.TryParse(m, out var mv) ? mv : 10;
-        float fontSize = options.TryGetValue("fontSize", out var fs) && float.TryParse(fs, out var fsv) ? fsv : 12;
-
-        if (orientation) pageSize = new QuestPDF.Helpers.PageSize(pageSize.Height, pageSize.Width);
-
         progress?.Report(30);
 
         string content;
         if (sourceFormat == FileFormat.Csv)
         {
-            content = await File.ReadAllTextAsync(inputPath, cancellationToken);
+            content = await File.ReadAllTextAsync(inputPath, ct);
         }
         else if (sourceFormat is FileFormat.Xlsx or FileFormat.Xls)
         {
@@ -91,29 +89,16 @@ public class PdfConverter : IFileConverter
         }
         else
         {
-            content = await File.ReadAllTextAsync(inputPath, cancellationToken);
+            content = await File.ReadAllTextAsync(inputPath, ct);
         }
 
         progress?.Report(60);
-
-        Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(pageSize);
-                page.Margin(margin, Unit.Millimetre);
-                page.DefaultTextStyle(x => x.FontSize(fontSize));
-
-                page.Content().Text(content);
-            });
-        }).GeneratePdf(outputPath);
-
-        progress?.Report(100);
+        PdfGenerationHelper.GeneratePdfFromText(content, outputPath, options);
     }
 
     private static string ReadSpreadsheetAsText(string inputPath)
     {
-        using var workbook = new ClosedXML.Excel.XLWorkbook(inputPath);
+        using var workbook = new XLWorkbook(inputPath);
         var ws = workbook.Worksheets.First();
         var range = ws.RangeUsed();
         if (range == null) return "";
@@ -123,25 +108,9 @@ public class PdfConverter : IFileConverter
         {
             var cells = new List<string>();
             for (int col = 1; col <= range.ColumnCount(); col++)
-            {
                 cells.Add(range.Cell(row, col).GetFormattedString());
-            }
             lines.Add(string.Join("\t", cells));
         }
         return string.Join(Environment.NewLine, lines);
-    }
-
-    private static QuestPDF.Helpers.PageSize GetPageSize(Dictionary<string, string> options)
-    {
-        var size = options.TryGetValue("pageSize", out var ps) ? ps : "A4";
-        return size.ToUpperInvariant() switch
-        {
-            "A3" => PageSizes.A3,
-            "A4" => PageSizes.A4,
-            "A5" => PageSizes.A5,
-            "LETTER" => PageSizes.Letter,
-            "LEGAL" => PageSizes.Legal,
-            _ => PageSizes.A4
-        };
     }
 }

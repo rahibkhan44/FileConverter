@@ -2,15 +2,30 @@ namespace FileConverter.Domain.Enums;
 
 public enum FileFormat
 {
-    // Images
+    // Images — Raster
     Png,
     Jpg,
     WebP,
     Gif,
     Bmp,
     Tiff,
-    Svg,
     Ico,
+    Heic,
+    Avif,
+    Psd,
+    Tga,
+    Jp2,
+    Jfif,
+    Dds,
+
+    // Images — Vector
+    Svg,
+
+    // Images — RAW Camera
+    Dng,
+    Cr2,
+    Nef,
+    Arw,
 
     // Documents
     Pdf,
@@ -20,6 +35,7 @@ public enum FileFormat
     Rtf,
     Txt,
     Html,
+    Md,
 
     // Spreadsheets
     Xlsx,
@@ -30,5 +46,25 @@ public enum FileFormat
     // Presentations
     Pptx,
     Ppt,
-    Odp
+    Odp,
+
+    // Video
+    Mp4,
+    Mkv,
+    WebM,
+    Avi,
+    Mov,
+    Flv,
+    Wmv,
+    Ts,
+
+    // Audio
+    Mp3,
+    Wav,
+    Flac,
+    Aac,
+    Ogg,
+    Wma,
+    M4a,
+    Opus
 }

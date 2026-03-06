@@ -1,27 +1,85 @@
 @inherits LayoutComponentBase
+@inject IJSRuntime JS
 
-<div class="page">
-    <header class="navbar navbar-dark bg-primary shadow-sm">
+<div class="d-flex flex-column min-vh-100">
+    <!-- Navbar -->
+    <nav class="fc-navbar navbar navbar-expand-lg sticky-top py-2">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <strong>FileConverter</strong>
+            <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="/">
+                <i class="bi bi-arrow-left-right text-primary"></i>
+                FileConverter
             </a>
-            <nav class="d-flex gap-3">
-                <a href="/" class="text-white text-decoration-none">Home</a>
-                <a href="/about" class="text-white text-decoration-none">About</a>
-            </nav>
-        </div>
-    </header>
 
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house-door me-1"></i>Convert
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/formats">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>Formats
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-tools me-1"></i>Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/tools/pdf"><i class="bi bi-file-earmark-pdf me-2"></i>PDF Tools</a></li>
+                            <li><a class="dropdown-item" href="/tools/images"><i class="bi bi-image me-2"></i>Image Tools</a></li>
+                            <li><a class="dropdown-item" href="/tools/video"><i class="bi bi-camera-video me-2"></i>Video Tools</a></li>
+                            <li><a class="dropdown-item" href="/tools/audio"><i class="bi bi-music-note-beamed me-2"></i>Audio Tools</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Theme toggle -->
+                <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-2" @onclick="ToggleTheme" title="Toggle dark mode" aria-label="Toggle theme">
+                    <i class="bi @(_isDark ? "bi-sun-fill" : "bi-moon-fill") fs-5"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
     <main class="flex-grow-1">
         @Body
     </main>
 
-    <footer class="bg-light py-3 mt-auto border-top">
-        <div class="container text-center text-muted">
-            <small>Supports: PDF, DOCX, XLSX, CSV, PPTX, TXT, RTF, PNG, JPG, WebP, GIF, BMP, TIFF, SVG</small>
-            <br />
-            <small>Free: 20 conversions/day | Max 50MB per file | Files auto-deleted after 1 hour</small>
+    <!-- Footer -->
+    <footer class="fc-footer py-4 mt-auto">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <h6 class="fw-bold mb-2">FileConverter</h6>
+                    <small>Free, open-source file converter supporting 50+ formats. No signup required.</small>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="fw-bold mb-2">Quick Links</h6>
+                    <div class="d-flex flex-column gap-1">
+                        <a href="/formats" class="text-decoration-none text-fc-muted small">All Formats</a>
+                        <a href="/tools/pdf" class="text-decoration-none text-fc-muted small">PDF Tools</a>
+                        <a href="/tools/images" class="text-decoration-none text-fc-muted small">Image Tools</a>
+                        <a href="/tools/video" class="text-decoration-none text-fc-muted small">Video Tools</a>
+                        <a href="/tools/audio" class="text-decoration-none text-fc-muted small">Audio Tools</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="fw-bold mb-2">Limits</h6>
+                    <small>Max 500MB per file | 100 files per batch | Files auto-deleted after 2 hours</small>
+                </div>
+            </div>
         </div>
     </footer>
 </div>
@@ -31,3 +89,23 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">X</span>
 </div>
+
+@code {
+    private bool _isDark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var theme = await JS.InvokeAsync<string>("themeManager.get");
+            _isDark = theme == "dark";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        _isDark = !_isDark;
+        await JS.InvokeVoidAsync("themeManager.set", _isDark ? "dark" : "light");
+    }
+}

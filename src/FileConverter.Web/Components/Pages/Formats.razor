@@ -1,0 +1,144 @@
+@page "/formats"
+@using FileConverter.Shared
+
+<PageTitle>All Supported Formats | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Browse all 30+ file formats supported by FileConverter. Images, documents, spreadsheets, presentations, RAW photos, and more." />
+</HeadContent>
+
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3">Supported Formats</h1>
+        <p class="lead mb-3">Browse all @_allFormats.Count formats we support. Click any format to see conversion options.</p>
+
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <input type="text" class="form-control search-input" placeholder="Search formats..."
+                       @bind="_search" @bind:event="oninput" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <!-- Category filter -->
+    <div class="d-flex justify-content-center gap-2 mb-4 flex-wrap">
+        <button class="btn @(_activeCategory == null ? "btn-fc-primary" : "btn-outline-secondary") btn-sm rounded-pill px-3"
+                @onclick="() => _activeCategory = null">
+            All (@_allFormats.Count)
+        </button>
+        @foreach (var cat in _categories)
+        {
+            <button class="btn @(_activeCategory == cat.Key ? "btn-fc-primary" : "btn-outline-secondary") btn-sm rounded-pill px-3"
+                    @onclick="() => _activeCategory = cat.Key">
+                <i class="bi @GetCategoryIcon(cat.Key) me-1"></i>@cat.Key (@cat.Value)
+            </button>
+        }
+    </div>
+
+    <!-- Format grid -->
+    <div class="row g-3">
+        @foreach (var fmt in FilteredFormats)
+        {
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="fc-card p-3 h-100">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="format-badge format-badge-@(ClientSupportedFormats.GetCategory(fmt.Key).ToLowerInvariant())">
+                            @fmt.Key.ToUpperInvariant()
+                        </span>
+                        <span class="fw-semibold small">@ClientSupportedFormats.GetFriendlyName(fmt.Key)</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var target in fmt.Value)
+                        {
+                            <a href="/convert/@(fmt.Key)-to-@target"
+                               class="badge text-decoration-none bg-fc-surface text-fc-muted border"
+                               style="font-size: 0.7rem;">
+                                @target.ToUpperInvariant()
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!FilteredFormats.Any())
+    {
+        <div class="text-center py-5 text-fc-muted">
+            <i class="bi bi-search fs-1 d-block mb-2"></i>
+            <p>No formats matching "<strong>@_search</strong>"</p>
+        </div>
+    }
+
+    <!-- Stats -->
+    <div class="row g-4 mt-5 text-center">
+        <div class="col-md-3 col-6">
+            <div class="tool-card h-100">
+                <div class="fs-2 fw-bold" style="color: var(--fc-primary);">@_allFormats.Count</div>
+                <small class="text-fc-muted">Input Formats</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="tool-card h-100">
+                <div class="fs-2 fw-bold" style="color: var(--fc-primary);">@_totalRoutes</div>
+                <small class="text-fc-muted">Conversion Routes</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="tool-card h-100">
+                <div class="fs-2 fw-bold" style="color: var(--fc-primary);">@_categories.Count</div>
+                <small class="text-fc-muted">Categories</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="tool-card h-100">
+                <div class="fs-2 fw-bold" style="color: var(--fc-primary);">500 MB</div>
+                <small class="text-fc-muted">Max File Size</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _search = "";
+    private string? _activeCategory;
+    private Dictionary<string, List<string>> _allFormats = new();
+    private Dictionary<string, int> _categories = new();
+    private int _totalRoutes;
+
+    protected override void OnInitialized()
+    {
+        _allFormats = ClientSupportedFormats.GetAll()
+            .Where(kv => !IsAlias(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        _totalRoutes = _allFormats.Sum(kv => kv.Value.Count);
+
+        _categories = _allFormats
+            .GroupBy(kv => ClientSupportedFormats.GetCategory(kv.Key))
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    private IEnumerable<KeyValuePair<string, List<string>>> FilteredFormats =>
+        _allFormats
+            .Where(kv =>
+                (_activeCategory == null || ClientSupportedFormats.GetCategory(kv.Key) == _activeCategory) &&
+                (string.IsNullOrEmpty(_search) ||
+                 kv.Key.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 ClientSupportedFormats.GetFriendlyName(kv.Key).Contains(_search, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(kv => kv.Key);
+
+    private static bool IsAlias(string ext) => ext is "jpeg" or "tif" or "htm" or "markdown" or "heif";
+
+    private static string GetCategoryIcon(string category) => category switch
+    {
+        "Image" => "bi-image",
+        "Document" => "bi-file-earmark-text",
+        "Spreadsheet" => "bi-table",
+        "Presentation" => "bi-easel",
+        _ => "bi-file-earmark"
+    };
+}

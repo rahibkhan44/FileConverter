@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet-dump -h)",
+      "Bash(python3 -c \" import subprocess result = subprocess.run\\([''dotnet'', ''exec'', ''--runtimeconfig'', ''/dev/null'', ''''], capture_output=True\\) \")",
+      "Bash(grep -r \"ToImage\\\\|ToImages\" /c/Users/DELL/.nuget/packages/pdftoimage/5.2.0/lib/net10.0/*.xml)",
+      "Read(//c/Users/DELL/source/repos/My WorkSpace/File Operations/Maui App/$HOME/**)"
+    ]
+  }
+}

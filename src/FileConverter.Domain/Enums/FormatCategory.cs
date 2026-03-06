@@ -5,5 +5,7 @@ public enum FormatCategory
     Image,
     Document,
     Spreadsheet,
-    Presentation
+    Presentation,
+    Video,
+    Audio
 }

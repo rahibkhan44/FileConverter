@@ -1,0 +1,328 @@
+@page "/tools/images"
+@rendermode InteractiveServer
+@inject FileConverterApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Free Image Tools - Compress, Resize, Crop, Rotate | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Free online image tools. Compress, resize, crop, rotate images, add watermarks, and strip metadata. No signup required." />
+</HeadContent>
+
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-image me-2"></i>Image Tools</h1>
+        <p class="lead">Compress, resize, crop, rotate, watermark, and strip metadata from images.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <!-- Tool Tabs -->
+    <ul class="nav nav-pills justify-content-center gap-2 mb-4 flex-wrap">
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "compress" ? "active bg-primary" : "")" @onclick='() => SetTool("compress")'>
+                <i class="bi bi-file-zip me-1"></i>Compress
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "resize" ? "active bg-primary" : "")" @onclick='() => SetTool("resize")'>
+                <i class="bi bi-arrows-angle-expand me-1"></i>Resize
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "crop" ? "active bg-primary" : "")" @onclick='() => SetTool("crop")'>
+                <i class="bi bi-crop me-1"></i>Crop
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "rotate" ? "active bg-primary" : "")" @onclick='() => SetTool("rotate")'>
+                <i class="bi bi-arrow-repeat me-1"></i>Rotate
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "watermark" ? "active bg-primary" : "")" @onclick='() => SetTool("watermark")'>
+                <i class="bi bi-droplet me-1"></i>Watermark
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "strip" ? "active bg-primary" : "")" @onclick='() => SetTool("strip")'>
+                <i class="bi bi-eraser me-1"></i>Strip Metadata
+            </button>
+        </li>
+    </ul>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="fc-card p-4">
+                @if (_activeTool == "compress")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-file-zip me-2 text-primary"></i>Compress Image</h4>
+                    <p class="text-fc-muted mb-3">Reduce file size while maintaining visual quality.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Quality (@_quality%)</label>
+                            <input type="range" class="form-range" min="10" max="100" @bind="_quality" />
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="CompressImage" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-file-zip me-1"></i>Compress
+                        </button>
+                    }
+                }
+                else if (_activeTool == "resize")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-arrows-angle-expand me-2 text-primary"></i>Resize Image</h4>
+                    <p class="text-fc-muted mb-3">Change image dimensions. Leave one field empty to maintain aspect ratio.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-medium">Width (px)</label>
+                                <input type="number" class="form-control" @bind="_width" min="1" max="10000" placeholder="Auto" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-medium">Height (px)</label>
+                                <input type="number" class="form-control" @bind="_height" min="1" max="10000" placeholder="Auto" />
+                            </div>
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="ResizeImage" disabled="@(_isProcessing || (_width == null && _height == null))">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-arrows-angle-expand me-1"></i>Resize
+                        </button>
+                    }
+                }
+                else if (_activeTool == "crop")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-crop me-2 text-primary"></i>Crop Image</h4>
+                    <p class="text-fc-muted mb-3">Crop to a specific region. Specify X, Y offset and dimensions.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-3">
+                                <label class="form-label fw-medium small">X</label>
+                                <input type="number" class="form-control" @bind="_cropX" min="0" />
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label fw-medium small">Y</label>
+                                <input type="number" class="form-control" @bind="_cropY" min="0" />
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label fw-medium small">Width</label>
+                                <input type="number" class="form-control" @bind="_cropW" min="1" />
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label fw-medium small">Height</label>
+                                <input type="number" class="form-control" @bind="_cropH" min="1" />
+                            </div>
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="CropImage" disabled="@(_isProcessing || _cropW < 1 || _cropH < 1)">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-crop me-1"></i>Crop
+                        </button>
+                    }
+                }
+                else if (_activeTool == "rotate")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-arrow-repeat me-2 text-primary"></i>Rotate Image</h4>
+                    <p class="text-fc-muted mb-3">Rotate an image by a specified angle.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Rotation angle</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn @(_rotateDeg == 90 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDeg = 90">90°</button>
+                                <button class="btn @(_rotateDeg == 180 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDeg = 180">180°</button>
+                                <button class="btn @(_rotateDeg == 270 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDeg = 270">270°</button>
+                                <input type="number" class="form-control w-auto" @bind="_rotateDeg" min="0" max="360" placeholder="Custom°" />
+                            </div>
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="RotateImage" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-arrow-repeat me-1"></i>Rotate
+                        </button>
+                    }
+                }
+                else if (_activeTool == "watermark")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-droplet me-2 text-primary"></i>Add Watermark</h4>
+                    <p class="text-fc-muted mb-3">Add a text watermark to your image.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Watermark text</label>
+                            <input type="text" class="form-control" @bind="_watermarkText" placeholder="Enter watermark text" />
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="AddWatermark" disabled="@(string.IsNullOrWhiteSpace(_watermarkText) || _isProcessing)">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-droplet me-1"></i>Add Watermark
+                        </button>
+                    }
+                }
+                else if (_activeTool == "strip")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-eraser me-2 text-primary"></i>Strip Metadata</h4>
+                    <p class="text-fc-muted mb-3">Remove EXIF, GPS, and other metadata from your image for privacy.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <button class="btn btn-fc-primary" @onclick="StripMetadata" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-eraser me-1"></i>Strip Metadata
+                        </button>
+                    }
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger mt-3 d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @_errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success mt-3 d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    @_successMessage
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="row g-4 mt-5 text-center">
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-file-zip d-block mb-2"></i>
+                <h6 class="fw-bold">Compress</h6>
+                <small class="text-fc-muted">Reduce file size with adjustable quality. Great for web optimization.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-arrows-angle-expand d-block mb-2"></i>
+                <h6 class="fw-bold">Resize & Crop</h6>
+                <small class="text-fc-muted">Change dimensions or crop to a specific region with pixel precision.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-shield-lock d-block mb-2"></i>
+                <h6 class="fw-bold">Privacy</h6>
+                <small class="text-fc-muted">Strip EXIF data, GPS location, camera info, and other metadata.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _activeTool = "compress";
+    private IBrowserFile? _selectedFile;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    // Compress
+    private int _quality = 75;
+
+    // Resize
+    private int? _width;
+    private int? _height;
+
+    // Crop
+    private int _cropX;
+    private int _cropY;
+    private int _cropW = 100;
+    private int _cropH = 100;
+
+    // Rotate
+    private int _rotateDeg = 90;
+
+    // Watermark
+    private string _watermarkText = "";
+
+    private void SetTool(string tool)
+    {
+        _activeTool = tool;
+        _selectedFile = null;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private async Task<MemoryStream> GetFileStream()
+    {
+        var ms = new MemoryStream();
+        await _selectedFile!.OpenReadStream(524_288_000).CopyToAsync(ms);
+        ms.Position = 0;
+        return ms;
+    }
+
+    private async Task ProcessImage(Func<MemoryStream, Task<(Stream, string)>> action, string successMsg)
+    {
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            using var ms = await GetFileStream();
+            var (resultStream, fileName) = await action(ms);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+            _successMessage = successMsg;
+        }
+        catch (Exception ex) { _errorMessage = $"Operation failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private Task CompressImage() =>
+        ProcessImage(ms => ApiClient.CompressImageAsync(ms, _selectedFile!.Name, _quality), "Image compressed!");
+
+    private Task ResizeImage() =>
+        ProcessImage(ms => ApiClient.ResizeImageAsync(ms, _selectedFile!.Name, _width, _height), "Image resized!");
+
+    private Task CropImage() =>
+        ProcessImage(ms => ApiClient.CropImageAsync(ms, _selectedFile!.Name, _cropX, _cropY, _cropW, _cropH), "Image cropped!");
+
+    private Task RotateImage() =>
+        ProcessImage(ms => ApiClient.RotateImageAsync(ms, _selectedFile!.Name, _rotateDeg), "Image rotated!");
+
+    private Task AddWatermark() =>
+        ProcessImage(ms => ApiClient.WatermarkImageAsync(ms, _selectedFile!.Name, _watermarkText), "Watermark added!");
+
+    private Task StripMetadata() =>
+        ProcessImage(ms => ApiClient.StripMetadataAsync(ms, _selectedFile!.Name), "Metadata stripped!");
+}

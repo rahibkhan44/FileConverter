@@ -35,7 +35,7 @@ public class ConvertController : ControllerBase
         {
             using var stream = file.OpenReadStream();
             var result = await _conversionService.CreateJobAsync(stream, file.FileName, targetFormat, optionsDict, ip, cancellationToken);
-            return Ok(result);
+            return Accepted(result);
         }
         catch (InvalidOperationException ex)
         {
@@ -67,8 +67,9 @@ public class ConvertController : ControllerBase
             return NotFound(new { error = "File expired or not found." });
 
         var stream = _storage.OpenRead(job.OutputFilePath);
-        var fileName = Path.GetFileName(job.OutputFilePath);
-        return File(stream, "application/octet-stream", fileName);
+        var ext = Path.GetExtension(job.OutputFilePath);
+        var downloadName = Path.GetFileNameWithoutExtension(job.OriginalFileName) + ext;
+        return File(stream, "application/octet-stream", downloadName);
     }
 
     [HttpPost("batch")]
@@ -99,7 +100,7 @@ public class ConvertController : ControllerBase
             foreach (var (stream, _) in fileList)
                 await stream.DisposeAsync();
 
-            return Ok(result);
+            return Accepted(result);
         }
         catch (InvalidOperationException ex)
         {
@@ -137,7 +138,9 @@ public class ConvertController : ControllerBase
             foreach (var job in completedJobs)
             {
                 if (!_storage.FileExists(job.OutputFilePath!)) continue;
-                var entry = archive.CreateEntry(Path.GetFileName(job.OutputFilePath!));
+                var ext = Path.GetExtension(job.OutputFilePath!);
+                var downloadName = Path.GetFileNameWithoutExtension(job.OriginalFileName) + ext;
+                var entry = archive.CreateEntry(downloadName);
                 using var entryStream = entry.Open();
                 using var fileStream = _storage.OpenRead(job.OutputFilePath!);
                 fileStream.CopyTo(entryStream);
@@ -164,7 +167,9 @@ public class ConvertController : ControllerBase
             return NotFound(new { error = "File expired or not found." });
 
         var stream = _storage.OpenRead(job.OutputFilePath);
-        return File(stream, "application/octet-stream", Path.GetFileName(job.OutputFilePath));
+        var batchExt = Path.GetExtension(job.OutputFilePath);
+        var batchDownloadName = Path.GetFileNameWithoutExtension(job.OriginalFileName) + batchExt;
+        return File(stream, "application/octet-stream", batchDownloadName);
     }
 
     private static Dictionary<string, string>? ParseOptions(string? optionsJson)

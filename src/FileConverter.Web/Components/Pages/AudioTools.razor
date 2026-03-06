@@ -1,0 +1,210 @@
+@page "/tools/audio"
+@rendermode InteractiveServer
+@inject FileConverterApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Free Audio Tools - Convert, Trim, Adjust Bitrate | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Free online audio tools. Convert between MP3, WAV, FLAC, AAC, OGG, M4A, Opus. Adjust bitrate and sample rate. No signup required." />
+</HeadContent>
+
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-music-note-beamed me-2"></i>Audio Tools</h1>
+        <p class="lead">Convert, trim, and adjust audio files. Supports MP3, WAV, FLAC, AAC, OGG, and more.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="fc-card p-4 mb-4">
+                <h4 class="fw-bold mb-3"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Convert Audio</h4>
+
+                <div class="mb-3">
+                    <InputFile OnChange="OnFileSelected" accept="audio/*,.mp3,.wav,.flac,.aac,.ogg,.wma,.m4a,.opus" class="form-control" />
+                </div>
+
+                @if (_selectedFile != null)
+                {
+                    <div class="mb-3 p-2 bg-fc-surface rounded d-flex align-items-center gap-2">
+                        <span class="format-badge format-badge-audio">@Path.GetExtension(_selectedFile.Name).TrimStart('.').ToUpperInvariant()</span>
+                        <span>@_selectedFile.Name</span>
+                        <small class="text-fc-muted">(@FormatSize(_selectedFile.Size))</small>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Target format</label>
+                            <select class="form-select" @bind="_targetFormat">
+                                <option value="mp3">MP3</option>
+                                <option value="wav">WAV</option>
+                                <option value="flac">FLAC</option>
+                                <option value="aac">AAC</option>
+                                <option value="ogg">OGG</option>
+                                <option value="m4a">M4A</option>
+                                <option value="opus">Opus</option>
+                                <option value="wma">WMA</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Bitrate (kbps)</label>
+                            <select class="form-select" @bind="_bitrate">
+                                <option value="">Default</option>
+                                <option value="64">64</option>
+                                <option value="128">128</option>
+                                <option value="192">192</option>
+                                <option value="256">256</option>
+                                <option value="320">320</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Sample rate</label>
+                            <select class="form-select" @bind="_sampleRate">
+                                <option value="">Default</option>
+                                <option value="22050">22050 Hz</option>
+                                <option value="44100">44100 Hz</option>
+                                <option value="48000">48000 Hz</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Channels</label>
+                            <select class="form-select" @bind="_channels">
+                                <option value="">Default</option>
+                                <option value="1">Mono</option>
+                                <option value="2">Stereo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Trim start (seconds)</label>
+                            <input type="number" class="form-control" @bind="_trimStart" min="0" step="0.1" placeholder="0" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Trim end (seconds)</label>
+                            <input type="number" class="form-control" @bind="_trimEnd" min="0" step="0.1" placeholder="End of file" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-fc-primary" @onclick="ConvertAudio" disabled="@_isProcessing">
+                        @if (_isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-arrow-left-right me-1"></i>Convert to @_targetFormat.ToUpperInvariant()
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="row g-4 mt-5 text-center">
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-arrow-left-right d-block mb-2"></i>
+                <h6 class="fw-bold">8 Formats</h6>
+                <small class="text-fc-muted">MP3, WAV, FLAC, AAC, OGG, WMA, M4A, Opus — convert between any audio format.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-sliders d-block mb-2"></i>
+                <h6 class="fw-bold">Full Control</h6>
+                <small class="text-fc-muted">Adjust bitrate, sample rate, channels. Trim start and end points.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-shield-check d-block mb-2"></i>
+                <h6 class="fw-bold">Secure</h6>
+                <small class="text-fc-muted">Files processed server-side and auto-deleted after 2 hours.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IBrowserFile? _selectedFile;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private string _targetFormat = "mp3";
+    private string _bitrate = "";
+    private string _sampleRate = "";
+    private string _channels = "";
+    private double? _trimStart;
+    private double? _trimEnd;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private async Task ConvertAudio()
+    {
+        if (_selectedFile == null) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _selectedFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var options = new Dictionary<string, string>();
+            if (!string.IsNullOrEmpty(_bitrate)) options["bitrate"] = _bitrate;
+            if (!string.IsNullOrEmpty(_sampleRate)) options["sampleRate"] = _sampleRate;
+            if (!string.IsNullOrEmpty(_channels)) options["channels"] = _channels;
+            if (_trimStart.HasValue) options["trimStart"] = _trimStart.Value.ToString();
+            if (_trimEnd.HasValue) options["trimEnd"] = _trimEnd.Value.ToString();
+
+            var response = await ApiClient.ConvertFileAsync(ms, _selectedFile.Name, _targetFormat, options.Count > 0 ? options : null);
+
+            while (true)
+            {
+                var status = await ApiClient.GetJobStatusAsync(response.JobId);
+                if (status.Status == "Completed")
+                {
+                    var (stream, fileName) = await ApiClient.DownloadFileAsync(response.JobId);
+                    using var result = new MemoryStream();
+                    await stream.CopyToAsync(result);
+                    await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+                    _successMessage = "Audio converted successfully!";
+                    break;
+                }
+                if (status.Status == "Failed")
+                {
+                    _errorMessage = status.ErrorMessage ?? "Conversion failed.";
+                    break;
+                }
+                await Task.Delay(1000);
+            }
+        }
+        catch (Exception ex) { _errorMessage = $"Failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private static string FormatSize(long bytes) => bytes < 1024 ? $"{bytes} B" : bytes < 1024 * 1024 ? $"{bytes / 1024.0:F1} KB" : $"{bytes / (1024.0 * 1024):F1} MB";
+}

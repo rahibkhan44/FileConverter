@@ -1,0 +1,285 @@
+@page "/tools/video"
+@rendermode InteractiveServer
+@using FileConverter.Web.Components.Shared
+@inject FileConverterApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Free Video Tools - Convert, Compress, Extract Audio | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Free online video tools. Convert between MP4, MKV, WebM, AVI, MOV. Extract audio, create GIFs. No signup required." />
+</HeadContent>
+
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-camera-video me-2"></i>Video Tools</h1>
+        <p class="lead">Convert, compress, and extract audio from videos. Supports MP4, MKV, WebM, AVI, MOV, and more.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <!-- Tool Tabs -->
+    <ul class="nav nav-pills justify-content-center gap-2 mb-4 flex-wrap">
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "convert" ? "active bg-primary" : "")" @onclick='() => SetTool("convert")'>
+                <i class="bi bi-arrow-left-right me-1"></i>Convert
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "extract" ? "active bg-primary" : "")" @onclick='() => SetTool("extract")'>
+                <i class="bi bi-music-note me-1"></i>Extract Audio
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "gif" ? "active bg-primary" : "")" @onclick='() => SetTool("gif")'>
+                <i class="bi bi-filetype-gif me-1"></i>To GIF
+            </button>
+        </li>
+    </ul>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Drop zone for file selection -->
+            <div class="fc-card p-4 mb-4">
+                <h4 class="fw-bold mb-3">
+                    @if (_activeTool == "convert")
+                    {
+                        <i class="bi bi-arrow-left-right me-2 text-primary"></i>@("Convert Video")
+                    }
+                    else if (_activeTool == "extract")
+                    {
+                        <i class="bi bi-music-note me-2 text-primary"></i>@("Extract Audio")
+                    }
+                    else
+                    {
+                        <i class="bi bi-filetype-gif me-2 text-primary"></i>@("Video to GIF")
+                    }
+                </h4>
+
+                <div class="mb-3">
+                    <InputFile OnChange="OnFileSelected" accept="video/*,.mp4,.mkv,.webm,.avi,.mov,.flv,.wmv,.ts" class="form-control" />
+                </div>
+
+                @if (_selectedFile != null)
+                {
+                    <div class="mb-3 p-2 bg-fc-surface rounded d-flex align-items-center gap-2">
+                        <span class="format-badge format-badge-video">@Path.GetExtension(_selectedFile.Name).TrimStart('.').ToUpperInvariant()</span>
+                        <span>@_selectedFile.Name</span>
+                        <small class="text-fc-muted">(@FormatSize(_selectedFile.Size))</small>
+                    </div>
+
+                    @if (_activeTool == "convert")
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Target format</label>
+                                <select class="form-select" @bind="_targetFormat">
+                                    <option value="mp4">MP4</option>
+                                    <option value="mkv">MKV</option>
+                                    <option value="webm">WebM</option>
+                                    <option value="avi">AVI</option>
+                                    <option value="mov">MOV</option>
+                                    <option value="wmv">WMV</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Resolution</label>
+                                <select class="form-select" @bind="_resolution">
+                                    <option value="">Original</option>
+                                    <option value="1920x1080">1080p</option>
+                                    <option value="1280x720">720p</option>
+                                    <option value="854x480">480p</option>
+                                    <option value="640x360">360p</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">FPS</label>
+                                <select class="form-select" @bind="_fps">
+                                    <option value="">Original</option>
+                                    <option value="60">60</option>
+                                    <option value="30">30</option>
+                                    <option value="24">24</option>
+                                    <option value="15">15</option>
+                                </select>
+                            </div>
+                        </div>
+                    }
+                    else if (_activeTool == "extract")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Audio format</label>
+                            <select class="form-select w-auto" @bind="_audioFormat">
+                                <option value="mp3">MP3</option>
+                                <option value="wav">WAV</option>
+                                <option value="aac">AAC</option>
+                            </select>
+                        </div>
+                    }
+                    else if (_activeTool == "gif")
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Width (px)</label>
+                                <input type="number" class="form-control" @bind="_gifWidth" min="100" max="1920" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">FPS</label>
+                                <input type="number" class="form-control" @bind="_gifFps" min="1" max="30" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Max duration (sec)</label>
+                                <input type="number" class="form-control" @bind="_gifMaxDuration" min="1" max="60" />
+                            </div>
+                        </div>
+                    }
+
+                    <button class="btn btn-fc-primary" @onclick="Process" disabled="@_isProcessing">
+                        @if (_isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        @GetButtonLabel()
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="row g-4 mt-5 text-center">
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-arrow-left-right d-block mb-2"></i>
+                <h6 class="fw-bold">Convert Formats</h6>
+                <small class="text-fc-muted">MP4, MKV, WebM, AVI, MOV, FLV, WMV, TS — convert between any video format.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-music-note d-block mb-2"></i>
+                <h6 class="fw-bold">Extract Audio</h6>
+                <small class="text-fc-muted">Pull audio tracks from videos as MP3, WAV, or AAC files.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-filetype-gif d-block mb-2"></i>
+                <h6 class="fw-bold">Create GIFs</h6>
+                <small class="text-fc-muted">Turn video clips into animated GIFs with custom size and frame rate.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _activeTool = "convert";
+    private IBrowserFile? _selectedFile;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    // Convert
+    private string _targetFormat = "mp4";
+    private string _resolution = "";
+    private string _fps = "";
+
+    // Extract audio
+    private string _audioFormat = "mp3";
+
+    // GIF
+    private int _gifWidth = 480;
+    private int _gifFps = 10;
+    private int _gifMaxDuration = 15;
+
+    private void SetTool(string tool) { _activeTool = tool; _selectedFile = null; _errorMessage = null; _successMessage = null; }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private string GetButtonLabel() => _activeTool switch
+    {
+        "convert" => $"Convert to {_targetFormat.ToUpperInvariant()}",
+        "extract" => $"Extract as {_audioFormat.ToUpperInvariant()}",
+        "gif" => "Create GIF",
+        _ => "Process"
+    };
+
+    private async Task Process()
+    {
+        if (_selectedFile == null) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _selectedFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var options = new Dictionary<string, string>();
+
+            string targetFmt;
+            if (_activeTool == "convert")
+            {
+                targetFmt = _targetFormat;
+                if (!string.IsNullOrEmpty(_resolution)) options["resolution"] = _resolution;
+                if (!string.IsNullOrEmpty(_fps)) options["fps"] = _fps;
+            }
+            else if (_activeTool == "extract")
+            {
+                targetFmt = _audioFormat;
+            }
+            else
+            {
+                targetFmt = "gif";
+                options["width"] = _gifWidth.ToString();
+                options["fps"] = _gifFps.ToString();
+                options["maxDuration"] = _gifMaxDuration.ToString();
+            }
+
+            var response = await ApiClient.ConvertFileAsync(ms, _selectedFile.Name, targetFmt, options.Count > 0 ? options : null);
+            // Poll for result
+            while (true)
+            {
+                var status = await ApiClient.GetJobStatusAsync(response.JobId);
+                if (status.Status == "Completed")
+                {
+                    var (stream, fileName) = await ApiClient.DownloadFileAsync(response.JobId);
+                    using var result = new MemoryStream();
+                    await stream.CopyToAsync(result);
+                    await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+                    _successMessage = "Processing complete!";
+                    break;
+                }
+                if (status.Status == "Failed")
+                {
+                    _errorMessage = status.ErrorMessage ?? "Processing failed.";
+                    break;
+                }
+                await Task.Delay(1000);
+            }
+        }
+        catch (Exception ex) { _errorMessage = $"Failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private static string FormatSize(long bytes) => bytes < 1024 ? $"{bytes} B" : bytes < 1024 * 1024 ? $"{bytes / 1024.0:F1} KB" : $"{bytes / (1024.0 * 1024):F1} MB";
+}

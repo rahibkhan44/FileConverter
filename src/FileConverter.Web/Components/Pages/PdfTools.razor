@@ -1,0 +1,328 @@
+@page "/tools/pdf"
+@rendermode InteractiveServer
+@inject FileConverterApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Free PDF Tools - Merge, Split, Extract | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Free online PDF tools. Merge multiple PDFs, split by page ranges, extract specific pages. No signup required." />
+</HeadContent>
+
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-file-earmark-pdf me-2"></i>PDF Tools</h1>
+        <p class="lead">Merge, split, and extract pages from PDF files. Free and secure.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <!-- Tool Tabs -->
+    <ul class="nav nav-pills justify-content-center gap-2 mb-4">
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "merge" ? "active bg-primary" : "")" @onclick='() => SetTool("merge")'>
+                <i class="bi bi-union me-1"></i>Merge
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "split" ? "active bg-primary" : "")" @onclick='() => SetTool("split")'>
+                <i class="bi bi-scissors me-1"></i>Split
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "extract" ? "active bg-primary" : "")" @onclick='() => SetTool("extract")'>
+                <i class="bi bi-file-earmark-break me-1"></i>Extract Pages
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "pagecount" ? "active bg-primary" : "")" @onclick='() => SetTool("pagecount")'>
+                <i class="bi bi-hash me-1"></i>Page Count
+            </button>
+        </li>
+    </ul>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            @if (_activeTool == "merge")
+            {
+                <!-- Merge -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-union me-2 text-primary"></i>Merge PDFs</h4>
+                    <p class="text-fc-muted mb-3">Combine multiple PDF files into one. Upload at least 2 files.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnMergeFilesSelected" multiple accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_mergeFiles.Count > 0)
+                    {
+                        <div class="list-group mb-3">
+                            @foreach (var (file, i) in _mergeFiles.Select((f, i) => (f, i)))
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-file-earmark-pdf text-danger me-2"></i>@file.Name</span>
+                                    <button class="btn btn-sm btn-outline-danger border-0" @onclick="() => _mergeFiles.RemoveAt(i)">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="MergePdfs" disabled="@(_mergeFiles.Count < 2 || _isProcessing)">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-union me-1"></i>Merge @_mergeFiles.Count PDFs
+                        </button>
+                    }
+                </div>
+            }
+            else if (_activeTool == "split")
+            {
+                <!-- Split -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-scissors me-2 text-primary"></i>Split PDF</h4>
+                    <p class="text-fc-muted mb-3">Split a PDF by page ranges. Use comma-separated ranges (e.g., <code>1-3,5,7-10</code>).</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnSplitFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_splitFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Page ranges</label>
+                            <input type="text" class="form-control" placeholder="e.g., 1-3,5,7-10 (leave empty to split all pages)"
+                                   @bind="_splitRanges" />
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="SplitPdf" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-scissors me-1"></i>Split PDF
+                        </button>
+                    }
+                </div>
+            }
+            else if (_activeTool == "extract")
+            {
+                <!-- Extract -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-file-earmark-break me-2 text-primary"></i>Extract Pages</h4>
+                    <p class="text-fc-muted mb-3">Extract specific pages from a PDF into a new file.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnExtractFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_extractFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Pages to extract</label>
+                            <input type="text" class="form-control" placeholder="e.g., 1,3,5-8"
+                                   @bind="_extractPages" />
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="ExtractPages" disabled="@(string.IsNullOrWhiteSpace(_extractPages) || _isProcessing)">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-file-earmark-break me-1"></i>Extract Pages
+                        </button>
+                    }
+                </div>
+            }
+            else if (_activeTool == "pagecount")
+            {
+                <!-- Page Count -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-hash me-2 text-primary"></i>Page Count</h4>
+                    <p class="text-fc-muted mb-3">Quickly check the number of pages in a PDF file.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnPageCountFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_pageCount.HasValue)
+                    {
+                        <div class="alert alert-success d-flex align-items-center">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>This PDF has <strong>@_pageCount</strong> page@(_pageCount == 1 ? "" : "s").</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger mt-3 d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @_errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success mt-3 d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    @_successMessage
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="row g-4 mt-5 text-center">
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-union d-block mb-2"></i>
+                <h6 class="fw-bold">Merge PDFs</h6>
+                <small class="text-fc-muted">Combine multiple PDFs into a single document. Maintains original quality.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-scissors d-block mb-2"></i>
+                <h6 class="fw-bold">Split & Extract</h6>
+                <small class="text-fc-muted">Split by page ranges or extract individual pages into new PDFs.</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tool-card h-100">
+                <i class="bi bi-shield-check d-block mb-2"></i>
+                <h6 class="fw-bold">Secure</h6>
+                <small class="text-fc-muted">Files processed server-side and auto-deleted after 2 hours.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _activeTool = "merge";
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    // Merge
+    private List<IBrowserFile> _mergeFiles = new();
+
+    // Split
+    private IBrowserFile? _splitFile;
+    private string _splitRanges = "";
+
+    // Extract
+    private IBrowserFile? _extractFile;
+    private string _extractPages = "";
+
+    // Page Count
+    private int? _pageCount;
+
+    private void SetTool(string tool)
+    {
+        _activeTool = tool;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private void OnMergeFilesSelected(InputFileChangeEventArgs e)
+    {
+        _mergeFiles.AddRange(e.GetMultipleFiles(20));
+        _errorMessage = null;
+    }
+
+    private void OnSplitFileSelected(InputFileChangeEventArgs e)
+    {
+        _splitFile = e.File;
+        _errorMessage = null;
+    }
+
+    private void OnExtractFileSelected(InputFileChangeEventArgs e)
+    {
+        _extractFile = e.File;
+        _errorMessage = null;
+    }
+
+    private async Task OnPageCountFileSelected(InputFileChangeEventArgs e)
+    {
+        _errorMessage = null;
+        _pageCount = null;
+        _isProcessing = true;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await e.File.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+            _pageCount = await ApiClient.GetPdfPageCountAsync(ms, e.File.Name);
+        }
+        catch (Exception ex) { _errorMessage = $"Failed to get page count: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task MergePdfs()
+    {
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            var streams = new List<(Stream, string)>();
+            foreach (var file in _mergeFiles)
+            {
+                var ms = new MemoryStream();
+                await file.OpenReadStream(524_288_000).CopyToAsync(ms);
+                ms.Position = 0;
+                streams.Add((ms, file.Name));
+            }
+
+            var (resultStream, fileName) = await ApiClient.MergePdfsAsync(streams);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+
+            foreach (var (s, _) in streams) await s.DisposeAsync();
+            _successMessage = "PDFs merged successfully!";
+        }
+        catch (Exception ex) { _errorMessage = $"Merge failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task SplitPdf()
+    {
+        if (_splitFile == null) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _splitFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var (resultStream, fileName) = await ApiClient.SplitPdfAsync(ms, _splitFile.Name, _splitRanges);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+            _successMessage = "PDF split successfully!";
+        }
+        catch (Exception ex) { _errorMessage = $"Split failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task ExtractPages()
+    {
+        if (_extractFile == null || string.IsNullOrWhiteSpace(_extractPages)) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _extractFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var (resultStream, fileName) = await ApiClient.ExtractPdfPagesAsync(ms, _extractFile.Name, _extractPages);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+            _successMessage = "Pages extracted successfully!";
+        }
+        catch (Exception ex) { _errorMessage = $"Extraction failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+}

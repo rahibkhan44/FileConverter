@@ -53,6 +53,12 @@ public class FormatOptionInfo
     public double? Max { get; set; }
 }
 
+public class PageCountResponse
+{
+    public int PageCount { get; set; }
+    public string FileName { get; set; } = string.Empty;
+}
+
 public class ApiError
 {
     public string Error { get; set; } = string.Empty;

@@ -14,7 +14,7 @@ public class SupportedConversionsTests
     [InlineData(FileFormat.Svg, FileFormat.Png, true)]
     [InlineData(FileFormat.Png, FileFormat.Docx, false)]
     [InlineData(FileFormat.Pdf, FileFormat.Docx, false)]
-    [InlineData(FileFormat.Svg, FileFormat.Pdf, false)]
+    [InlineData(FileFormat.Svg, FileFormat.Pdf, true)]
     public void IsSupported_ReturnsCorrectResult(FileFormat source, FileFormat target, bool expected)
     {
         Assert.Equal(expected, SupportedConversions.IsSupported(source, target));

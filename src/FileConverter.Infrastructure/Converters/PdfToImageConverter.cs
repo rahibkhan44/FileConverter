@@ -1,12 +1,18 @@
 using FileConverter.Application;
 using FileConverter.Domain.Enums;
 using FileConverter.Domain.Interfaces;
-using System.Diagnostics;
+using PDFtoImage;
 
 namespace FileConverter.Infrastructure.Converters;
 
+/// <summary>
+/// Converts PDF pages to images (PNG/JPG) using the PDFtoImage library (bundles PDFium).
+/// WARNING: PDFium is NOT thread-safe — this converter uses a static SemaphoreSlim(1).
+/// </summary>
 public class PdfToImageConverter : IFileConverter
 {
+    private static readonly SemaphoreSlim PdfiumLock = new(1, 1);
+
     private static readonly HashSet<FileFormat> SupportedTargets = new()
     {
         FileFormat.Png, FileFormat.Jpg
@@ -18,109 +24,40 @@ public class PdfToImageConverter : IFileConverter
     public async Task<string> ConvertAsync(string inputPath, string outputDirectory, FileFormat targetFormat,
         Dictionary<string, string> options, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
-        progress?.Report(10);
+        progress?.Report(5);
 
-        // Use LibreOffice to convert PDF to image
-        var sofficePath = FindSofficePath();
-        if (sofficePath == null)
-            throw new InvalidOperationException("LibreOffice is required for PDF to image conversion. Install from https://www.libreoffice.org/download/");
-
+        var ext = targetFormat == FileFormat.Jpg ? ".jpg" : ".png";
+        var outputFileName = Path.GetFileNameWithoutExtension(inputPath) + ext;
+        var outputPath = Path.Combine(outputDirectory, outputFileName);
         Directory.CreateDirectory(outputDirectory);
 
-        var loFormat = targetFormat == FileFormat.Jpg ? "jpg" : "png";
-        var args = $"--headless --norestore --convert-to {loFormat} --outdir \"{outputDirectory}\" \"{inputPath}\"";
+        int dpi = options.TryGetValue("dpi", out var d) && int.TryParse(d, out var dv) ? dv : 300;
+        int? pageIndex = options.TryGetValue("page", out var p) && int.TryParse(p, out var pv) ? pv : null;
 
-        progress?.Report(20);
+        progress?.Report(10);
 
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = sofficePath,
-                Arguments = args,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WorkingDirectory = outputDirectory
-            }
-        };
-
-        process.Start();
-        progress?.Report(50);
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(TimeSpan.FromMinutes(5));
-
+        // PDFium is not thread-safe — acquire lock
+        await PdfiumLock.WaitAsync(cancellationToken);
         try
         {
-            await process.WaitForExitAsync(timeoutCts.Token);
+            using var pdfStream = File.OpenRead(inputPath);
+            int page = pageIndex ?? 0;
+            var renderOptions = new RenderOptions(Dpi: dpi);
+
+            progress?.Report(30);
+
+            if (targetFormat == FileFormat.Jpg)
+                Conversion.SaveJpeg(outputPath, pdfStream, page, leaveOpen: true, password: null, options: renderOptions);
+            else
+                Conversion.SavePng(outputPath, pdfStream, page, leaveOpen: true, password: null, options: renderOptions);
+
+            progress?.Report(100);
         }
-        catch (OperationCanceledException)
+        finally
         {
-            try { process.Kill(true); } catch { }
-            throw new TimeoutException("PDF to image conversion timed out after 5 minutes.");
+            PdfiumLock.Release();
         }
 
-        progress?.Report(80);
-
-        if (process.ExitCode != 0)
-        {
-            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-            throw new InvalidOperationException($"PDF to image conversion failed (exit code {process.ExitCode}): {error}");
-        }
-
-        var expectedName = Path.GetFileNameWithoutExtension(inputPath) + "." + loFormat;
-        var outputPath = Path.Combine(outputDirectory, expectedName);
-
-        if (!File.Exists(outputPath))
-        {
-            var candidates = Directory.GetFiles(outputDirectory, $"*.{loFormat}");
-            outputPath = candidates.FirstOrDefault()
-                ?? throw new FileNotFoundException($"PDF to image conversion did not produce output. Expected: {expectedName}");
-        }
-
-        progress?.Report(100);
         return outputPath;
-    }
-
-    private static string? FindSofficePath()
-    {
-        string[] windowsPaths =
-        [
-            @"C:\Program Files\LibreOffice\program\soffice.exe",
-            @"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-        ];
-
-        foreach (var path in windowsPaths)
-        {
-            if (File.Exists(path)) return path;
-        }
-
-        try
-        {
-            var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "which",
-                Arguments = "soffice",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-
-            if (process != null)
-            {
-                var result = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit();
-                if (!string.IsNullOrEmpty(result) && File.Exists(result))
-                    return result;
-            }
-        }
-        catch { }
-
-        if (File.Exists("/Applications/LibreOffice.app/Contents/MacOS/soffice"))
-            return "/Applications/LibreOffice.app/Contents/MacOS/soffice";
-
-        return null;
     }
 }

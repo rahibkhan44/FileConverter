@@ -39,22 +39,23 @@ builder.Services.AddSingleton<IFileStorageService>(new TempFileStorageService())
 builder.Services.AddSingleton<IJobTracker, InMemoryJobTracker>();
 builder.Services.AddSingleton<IRateLimitService, RateLimitService>();
 
-// Converters — LibreOffice first (best quality for documents), then fallbacks
-builder.Services.AddSingleton<IFileConverter, LibreOfficeConverter>();
-builder.Services.AddSingleton<IFileConverter, ImageConverter>();
+// Converters — Magick.NET first (wins all image routes), then specialized converters
+builder.Services.AddSingleton<IFileConverter, MagickImageConverter>();
+builder.Services.AddSingleton<IFileConverter, NpoiDocumentConverter>();
+builder.Services.AddSingleton<IFileConverter, NpoiSpreadsheetConverter>();
+builder.Services.AddSingleton<IFileConverter, NpoiPresentationConverter>();
+builder.Services.AddSingleton<IFileConverter, MarkdownConverter>();
 builder.Services.AddSingleton<IFileConverter, SvgConverter>();
-builder.Services.AddSingleton<IFileConverter, SpreadsheetConverter>();
 builder.Services.AddSingleton<IFileConverter, PdfConverter>();
-builder.Services.AddSingleton<IFileConverter, DocumentConverter>();
-builder.Services.AddSingleton<IFileConverter, RtfConverter>();
 builder.Services.AddSingleton<IFileConverter, ImageToPdfConverter>();
 builder.Services.AddSingleton<IFileConverter, PdfToImageConverter>();
+builder.Services.AddSingleton<IFileConverter, VideoConverter>();
+builder.Services.AddSingleton<IFileConverter, AudioConverter>();
 builder.Services.AddSingleton<ConversionEngineFactory>();
 
-if (LibreOfficeConverter.IsAvailable())
-    Log.Information("LibreOffice detected — full document conversion enabled");
-else
-    Log.Warning("LibreOffice not found — document conversions will use basic text extraction. Install from https://www.libreoffice.org/download/");
+// Tool services (PDF tools, Image tools)
+builder.Services.AddSingleton<PdfToolsService>();
+builder.Services.AddSingleton<ImageToolsService>();
 
 // Application services
 builder.Services.AddScoped<ConversionService>();

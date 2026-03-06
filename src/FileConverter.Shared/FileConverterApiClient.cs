@@ -117,6 +117,116 @@ public class FileConverterApiClient
         return (await response.Content.ReadFromJsonAsync<List<FormatOptionInfo>>(JsonOptions, cancellationToken))!;
     }
 
+    // ═══ PDF Tools ═══
+
+    public async Task<int> GetPdfPageCountAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        var response = await _httpClient.PostAsync("api/v1/pdf/page-count", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<PageCountResponse>(JsonOptions, cancellationToken);
+        return result?.PageCount ?? 0;
+    }
+
+    public async Task<(Stream Stream, string FileName)> MergePdfsAsync(IEnumerable<(Stream Stream, string FileName)> files, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        foreach (var (stream, fileName) in files)
+            content.Add(new StreamContent(stream), "files", fileName);
+        var response = await _httpClient.PostAsync("api/v1/pdf/merge", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, "merged.pdf"));
+    }
+
+    public async Task<(Stream Stream, string FileName)> SplitPdfAsync(Stream fileStream, string fileName, string? pages = null, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        if (!string.IsNullOrEmpty(pages))
+            content.Add(new StringContent(pages), "pages");
+        var response = await _httpClient.PostAsync("api/v1/pdf/split", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, "split.pdf"));
+    }
+
+    public Task<(Stream Stream, string FileName)> ExtractPdfPagesAsync(Stream fileStream, string fileName, string pages, CancellationToken cancellationToken = default)
+    {
+        return SplitPdfAsync(fileStream, fileName, pages, cancellationToken);
+    }
+
+    // ═══ Image Tools ═══
+
+    public async Task<(Stream Stream, string FileName)> CompressImageAsync(Stream fileStream, string fileName, int quality = 75, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(quality.ToString()), "quality");
+        var response = await _httpClient.PostAsync("api/v1/image/compress", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> ResizeImageAsync(Stream fileStream, string fileName, int? width, int? height, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        if (width.HasValue) content.Add(new StringContent(width.Value.ToString()), "width");
+        if (height.HasValue) content.Add(new StringContent(height.Value.ToString()), "height");
+        var response = await _httpClient.PostAsync("api/v1/image/resize", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> CropImageAsync(Stream fileStream, string fileName, int x, int y, int width, int height, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(x.ToString()), "x");
+        content.Add(new StringContent(y.ToString()), "y");
+        content.Add(new StringContent(width.ToString()), "width");
+        content.Add(new StringContent(height.ToString()), "height");
+        var response = await _httpClient.PostAsync("api/v1/image/crop", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> RotateImageAsync(Stream fileStream, string fileName, double degrees = 90, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(degrees.ToString()), "degrees");
+        var response = await _httpClient.PostAsync("api/v1/image/rotate", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> WatermarkImageAsync(Stream fileStream, string fileName, string text, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(text), "text");
+        var response = await _httpClient.PostAsync("api/v1/image/watermark", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> StripMetadataAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        var response = await _httpClient.PostAsync("api/v1/image/strip-metadata", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    private static string GetFileName(HttpResponseMessage response, string fallback)
+    {
+        return response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? fallback;
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (!response.IsSuccessStatusCode)

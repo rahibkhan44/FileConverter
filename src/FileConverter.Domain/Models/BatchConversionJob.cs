@@ -14,10 +14,10 @@ public class BatchConversionJob
     private ConversionStatus GetOverallStatus()
     {
         if (Jobs.Count == 0) return ConversionStatus.Pending;
-        if (Jobs.All(j => j.Status == ConversionStatus.Completed)) return ConversionStatus.Completed;
-        if (Jobs.Any(j => j.Status == ConversionStatus.Failed) && Jobs.All(j => j.Status is ConversionStatus.Completed or ConversionStatus.Failed))
-            return ConversionStatus.Completed;
-        if (Jobs.Any(j => j.Status is ConversionStatus.Processing or ConversionStatus.Pending)) return ConversionStatus.Processing;
-        return ConversionStatus.Pending;
+        if (Jobs.Any(j => j.Status is ConversionStatus.Processing or ConversionStatus.Pending))
+            return ConversionStatus.Processing;
+        if (Jobs.All(j => j.Status == ConversionStatus.Failed))
+            return ConversionStatus.Failed;
+        return ConversionStatus.Completed;
     }
 }

@@ -1,47 +1,132 @@
 @page "/about"
 
 <PageTitle>About - FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="About FileConverter - a free, open-source file converter supporting 50+ formats. Created by Rahib Khan." />
+</HeadContent>
 
-<div class="container py-5">
-    <h1 class="mb-4">About FileConverter</h1>
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3">About FileConverter</h1>
+        <p class="lead">Free, open-source file converter supporting 50+ formats.</p>
+    </div>
+</section>
 
-    <div class="row">
+<div class="container pb-5">
+    <!-- Developer -->
+    <div class="row justify-content-center mt-4 mb-5">
+        <div class="col-lg-8">
+            <div class="fc-card p-4 text-center">
+                <h4 class="fw-bold mb-3"><i class="bi bi-person-circle me-2 text-primary"></i>Developer</h4>
+                <p class="fs-5 mb-1">Created and developed by <strong>Rahib Khan</strong></p>
+                <p class="text-fc-muted mb-0">
+                    <i class="bi bi-envelope me-1"></i>
+                    <a href="mailto:rahibkhan.dev88@gmail.com" class="text-decoration-none">rahibkhan.dev88@gmail.com</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Formats -->
         <div class="col-md-6">
-            <h4>Image Conversions</h4>
-            <p>Convert between PNG, JPG, WebP, GIF, BMP, TIFF (any-to-any) and SVG to raster formats.</p>
+            <div class="fc-card p-4 h-100">
+                <h4 class="fw-bold mb-3"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Supported Formats</h4>
 
-            <h4 class="mt-4">Document Conversions</h4>
-            <ul>
-                <li><strong>DOCX</strong> to PDF, TXT</li>
-                <li><strong>DOC</strong> to PDF, DOCX, TXT</li>
-                <li><strong>XLSX/XLS</strong> to PDF, CSV</li>
-                <li><strong>CSV</strong> to PDF, XLSX</li>
-                <li><strong>PPTX</strong> to PDF, TXT</li>
-                <li><strong>PPT</strong> to PDF, PPTX</li>
-                <li><strong>TXT</strong> to PDF</li>
-                <li><strong>RTF</strong> to PDF, TXT, DOCX</li>
-                <li><strong>PDF</strong> to TXT</li>
-            </ul>
+                <h6 class="fw-semibold mt-3">Images (30+ formats)</h6>
+                <p class="text-fc-muted small">PNG, JPG, WebP, GIF, BMP, TIFF, SVG, ICO, HEIC, AVIF, PSD, TGA, JP2, JFIF, DDS, DNG, CR2, NEF, ARW and more via Magick.NET.</p>
+
+                <h6 class="fw-semibold">Documents</h6>
+                <p class="text-fc-muted small">DOCX, ODT, RTF, TXT, HTML, Markdown — cross-convert via NPOI and OpenXml.</p>
+
+                <h6 class="fw-semibold">Spreadsheets</h6>
+                <p class="text-fc-muted small">XLSX, XLS, ODS, CSV — with full formatting via NPOI and ClosedXML.</p>
+
+                <h6 class="fw-semibold">Presentations</h6>
+                <p class="text-fc-muted small">PPTX, ODP — via NPOI.</p>
+
+                <h6 class="fw-semibold">PDF</h6>
+                <p class="text-fc-muted small">PDF to text/images, plus merge, split, and extract tools via PdfSharpCore and PDFtoImage.</p>
+
+                <h6 class="fw-semibold">Video (8 formats)</h6>
+                <p class="text-fc-muted small">MP4, MKV, WebM, AVI, MOV, FLV, WMV, TS — cross-convert, extract audio, create GIFs via FFmpeg.</p>
+
+                <h6 class="fw-semibold">Audio (8 formats)</h6>
+                <p class="text-fc-muted small">MP3, WAV, FLAC, AAC, OGG, WMA, M4A, Opus — cross-convert with bitrate/sample rate control via FFmpeg.</p>
+            </div>
         </div>
 
+        <!-- Features & Limits -->
         <div class="col-md-6">
-            <h4>Features</h4>
-            <ul>
-                <li>No login required</li>
-                <li>Batch upload up to 100 files</li>
-                <li>Drag-and-drop upload</li>
-                <li>Per-file progress tracking</li>
-                <li>Download individually or as ZIP</li>
-                <li>Advanced options (quality, DPI, page size, etc.)</li>
-                <li>Files auto-deleted after 1 hour</li>
-            </ul>
+            <div class="fc-card p-4 h-100">
+                <h4 class="fw-bold mb-3"><i class="bi bi-star me-2 text-primary"></i>Features</h4>
+                <ul class="text-fc-muted">
+                    <li>No login or signup required</li>
+                    <li>Batch upload up to 100 files</li>
+                    <li>Drag-and-drop with file preview</li>
+                    <li>Per-file progress tracking</li>
+                    <li>Download individually or as ZIP</li>
+                    <li>Advanced options (quality, DPI, resolution, bitrate, trim)</li>
+                    <li>Dark mode support</li>
+                    <li>PDF tools: merge, split, extract pages</li>
+                    <li>Image tools: compress, resize, crop, rotate, watermark</li>
+                    <li>Video tools: convert, compress, extract audio, GIF maker</li>
+                    <li>Audio tools: convert, trim, adjust bitrate</li>
+                    <li>Files auto-deleted after 2 hours</li>
+                </ul>
 
-            <h4 class="mt-4">Limits</h4>
-            <ul>
-                <li>20 conversions per day (free)</li>
-                <li>50MB max per file</li>
-                <li>100 files max per batch</li>
-            </ul>
+                <h4 class="fw-bold mt-4 mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Limits</h4>
+                <ul class="text-fc-muted">
+                    <li>500 MB max per file</li>
+                    <li>100 files max per batch</li>
+                    <li>2 GB max total per batch</li>
+                    <li>50 conversions per day (free tier)</li>
+                </ul>
+
+                <h4 class="fw-bold mt-4 mb-3"><i class="bi bi-exclamation-triangle me-2 text-primary"></i>Known Limitations</h4>
+                <ul class="text-fc-muted small">
+                    <li><strong>HEIC:</strong> Read-only (patent restriction). Convert FROM HEIC, not TO HEIC.</li>
+                    <li><strong>Legacy .doc/.xls/.ppt:</strong> Not supported in .NET NPOI. Use DOCX/XLSX/PPTX instead.</li>
+                    <li><strong>Video/Audio:</strong> Requires Docker deployment with FFmpeg installed.</li>
+                    <li><strong>PDF to Image:</strong> Single-threaded (PDFium limitation).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-lg-8">
+            <div class="fc-card p-4">
+                <h4 class="fw-bold mb-3 text-center"><i class="bi bi-code-slash me-2 text-primary"></i>Technology Stack</h4>
+                <div class="row g-3 text-center">
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>.NET 9</strong><br><small class="text-fc-muted">Runtime</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>Blazor Server</strong><br><small class="text-fc-muted">Web UI</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>ASP.NET Core</strong><br><small class="text-fc-muted">API</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>Magick.NET</strong><br><small class="text-fc-muted">Images</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>NPOI</strong><br><small class="text-fc-muted">Documents</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>QuestPDF</strong><br><small class="text-fc-muted">PDF Gen</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>FFmpeg</strong><br><small class="text-fc-muted">Video/Audio</small></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="p-2"><strong>Docker</strong><br><small class="text-fc-muted">Deployment</small></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
