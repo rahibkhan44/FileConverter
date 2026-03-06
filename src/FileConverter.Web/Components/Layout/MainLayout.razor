@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <header class="navbar navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <strong>FileConverter</strong>
+            </a>
+            <nav class="d-flex gap-3">
+                <a href="/" class="text-white text-decoration-none">Home</a>
+                <a href="/about" class="text-white text-decoration-none">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow-1">
+        @Body
+    </main>
+
+    <footer class="bg-light py-3 mt-auto border-top">
+        <div class="container text-center text-muted">
+            <small>Supports: PDF, DOCX, XLSX, CSV, PPTX, TXT, RTF, PNG, JPG, WebP, GIF, BMP, TIFF, SVG</small>
+            <br />
+            <small>Free: 20 conversions/day | Max 50MB per file | Files auto-deleted after 1 hour</small>
+        </div>
+    </footer>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">X</span>
+</div>

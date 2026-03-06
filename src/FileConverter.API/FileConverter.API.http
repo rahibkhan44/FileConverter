@@ -1,0 +1,6 @@
+@FileConverter.API_HostAddress = http://localhost:5229
+
+GET {{FileConverter.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

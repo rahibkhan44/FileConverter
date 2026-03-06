@@ -1,0 +1,449 @@
+@page "/"
+@rendermode InteractiveServer
+@using FileConverter.Web.Components.Shared
+@inject FileConverterApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>FileConverter - Free File Converter</PageTitle>
+
+<div class="container py-5">
+    <!-- Hero -->
+    <div class="text-center mb-4">
+        <h1 class="display-5 fw-bold text-primary">Free File Converter</h1>
+        <p class="lead text-muted">Convert documents & images instantly. No login required.</p>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-8">
+            <FileDropZone OnFilesSelected="OnFilesSelected" />
+        </div>
+    </div>
+
+    @if (_selectedFiles.Count > 0)
+    {
+        <!-- Format Picker -->
+        <div class="row justify-content-center mb-3">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <label class="fw-semibold">Convert to:</label>
+                    <select class="form-select w-auto" @bind="_targetFormat">
+                        <option value="">-- Select format --</option>
+                        @foreach (var fmt in _availableTargets)
+                        {
+                            <option value="@fmt">@fmt.ToUpperInvariant()</option>
+                        }
+                    </select>
+
+                    <button class="btn btn-link" @onclick="ToggleAdvancedOptions">
+                        @(_showAdvanced ? "Hide" : "Show") Advanced Options
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Options -->
+        @if (_showAdvanced && _formatOptions.Count > 0)
+        {
+            <div class="row justify-content-center mb-3">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Advanced Options</h6>
+                            <div class="row g-3">
+                                @foreach (var opt in _formatOptions)
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label">@(opt.Description ?? opt.Name)</label>
+                                        @if (opt.Type == "select" && opt.AllowedValues != null)
+                                        {
+                                            <select class="form-select" @onchange="e => SetOption(opt.Name, e.Value?.ToString())">
+                                                @foreach (var val in opt.AllowedValues)
+                                                {
+                                                    <option value="@val" selected="@(GetOption(opt.Name, opt.DefaultValue) == val)">@val</option>
+                                                }
+                                            </select>
+                                        }
+                                        else if (opt.Type == "boolean")
+                                        {
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       checked="@(GetOption(opt.Name, opt.DefaultValue) == "true")"
+                                                       @onchange="e => SetOption(opt.Name, e.Value?.ToString()?.ToLower())" />
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <input class="form-control" type="number"
+                                                   value="@GetOption(opt.Name, opt.DefaultValue)"
+                                                   min="@opt.Min" max="@opt.Max"
+                                                   @onchange="e => SetOption(opt.Name, e.Value?.ToString())" />
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- File List -->
+        <div class="row justify-content-center mb-3">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Files (@_selectedFiles.Count)</span>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="ClearFiles">Clear All</button>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        @foreach (var file in _selectedFiles)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-secondary">@file.Extension.ToUpperInvariant()</span>
+                                        <span class="text-truncate" style="max-width: 300px;">@file.Name</span>
+                                        <small class="text-muted">(@FormatSize(file.Size))</small>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (file.Status == "Completed")
+                                        {
+                                            <span class="badge bg-success">Done</span>
+                                            @if (file.JobId.HasValue)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => DownloadFile(file)">Download</button>
+                                            }
+                                        }
+                                        else if (file.Status == "Failed")
+                                        {
+                                            <span class="badge bg-danger" title="@file.ErrorMessage">Failed</span>
+                                        }
+                                        else if (file.Status == "Processing")
+                                        {
+                                            <div class="progress" style="width: 120px; height: 20px;">
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                     style="width: @(file.Progress)%">@(file.Progress)%</div>
+                                            </div>
+                                        }
+                                        else if (file.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark">Queued</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark">Ready</span>
+                                        }
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)">X</button>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8 d-flex gap-3 justify-content-center">
+                <button class="btn btn-primary btn-lg" @onclick="ConvertAll"
+                        disabled="@(string.IsNullOrEmpty(_targetFormat) || _isConverting)">
+                    @if (_isConverting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Convert All
+                </button>
+
+                @if (_batchId.HasValue && _selectedFiles.Any(f => f.Status == "Completed"))
+                {
+                    <button class="btn btn-success btn-lg" @onclick="DownloadAllZip">
+                        Download All (.zip)
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="alert alert-danger alert-dismissible">
+                        @_errorMessage
+                        <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<FileItem> _selectedFiles = new();
+    private string _targetFormat = "";
+    private List<string> _availableTargets = new();
+    private bool _showAdvanced;
+    private List<FormatOptionInfo> _formatOptions = new();
+    private Dictionary<string, string> _options = new();
+    private bool _isConverting;
+    private Guid? _batchId;
+    private string? _errorMessage;
+    private CancellationTokenSource? _pollCts;
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        var maxFiles = Math.Min(e.FileCount, 100);
+        foreach (var file in e.GetMultipleFiles(maxFiles))
+        {
+            var ext = Path.GetExtension(file.Name);
+            if (!ClientSupportedFormats.IsSupported(ext))
+                continue;
+
+            _selectedFiles.Add(new FileItem
+            {
+                Name = file.Name,
+                Extension = ext.TrimStart('.'),
+                Size = file.Size,
+                BrowserFile = file
+            });
+        }
+
+        UpdateAvailableTargets();
+    }
+
+    private void UpdateAvailableTargets()
+    {
+        if (_selectedFiles.Count == 0)
+        {
+            _availableTargets.Clear();
+            return;
+        }
+
+        // Find common target formats across all selected files
+        HashSet<string>? common = null;
+        foreach (var file in _selectedFiles)
+        {
+            var targets = ClientSupportedFormats.GetTargetFormats(file.Extension).ToHashSet();
+            common = common == null ? targets : new HashSet<string>(common.Intersect(targets));
+        }
+        _availableTargets = common?.OrderBy(f => f).ToList() ?? new();
+
+        if (!_availableTargets.Contains(_targetFormat))
+            _targetFormat = _availableTargets.FirstOrDefault() ?? "";
+    }
+
+    private async Task ToggleAdvancedOptions()
+    {
+        _showAdvanced = !_showAdvanced;
+        if (_showAdvanced && !string.IsNullOrEmpty(_targetFormat) && _selectedFiles.Count > 0)
+        {
+            try
+            {
+                _formatOptions = await ApiClient.GetFormatOptionsAsync(_selectedFiles[0].Extension, _targetFormat);
+                // Set defaults
+                foreach (var opt in _formatOptions)
+                {
+                    if (!_options.ContainsKey(opt.Name))
+                        _options[opt.Name] = opt.DefaultValue;
+                }
+            }
+            catch
+            {
+                _formatOptions.Clear();
+            }
+        }
+    }
+
+    private void SetOption(string name, string? value) => _options[name] = value ?? "";
+    private string GetOption(string name, string defaultValue) =>
+        _options.TryGetValue(name, out var val) ? val : defaultValue;
+
+    private async Task ConvertAll()
+    {
+        if (string.IsNullOrEmpty(_targetFormat) || _selectedFiles.Count == 0) return;
+
+        _isConverting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var fileStreams = new List<(Stream, string)>();
+            foreach (var file in _selectedFiles)
+            {
+                var ms = new MemoryStream();
+                await file.BrowserFile!.OpenReadStream(52_428_800).CopyToAsync(ms);
+                ms.Position = 0;
+                fileStreams.Add((ms, file.Name));
+                file.Status = "Pending";
+            }
+
+            if (_selectedFiles.Count == 1)
+            {
+                var (stream, name) = fileStreams[0];
+                var response = await ApiClient.ConvertFileAsync(stream, name, _targetFormat, _options.Count > 0 ? _options : null);
+                _selectedFiles[0].JobId = response.JobId;
+                await stream.DisposeAsync();
+                await PollSingleJob(_selectedFiles[0]);
+            }
+            else
+            {
+                var batchResponse = await ApiClient.ConvertBatchAsync(fileStreams, _targetFormat, _options.Count > 0 ? _options : null);
+                _batchId = batchResponse.BatchId;
+
+                for (int i = 0; i < batchResponse.Jobs.Count && i < _selectedFiles.Count; i++)
+                {
+                    _selectedFiles[i].JobId = batchResponse.Jobs[i].JobId;
+                }
+
+                foreach (var (stream, _) in fileStreams)
+                    await stream.DisposeAsync();
+
+                await PollBatchStatus();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Conversion failed: {ex.Message}";
+        }
+        finally
+        {
+            _isConverting = false;
+        }
+    }
+
+    private async Task PollSingleJob(FileItem file)
+    {
+        _pollCts?.Cancel();
+        _pollCts = new CancellationTokenSource();
+        var ct = _pollCts.Token;
+
+        while (!ct.IsCancellationRequested && file.JobId.HasValue)
+        {
+            try
+            {
+                var status = await ApiClient.GetJobStatusAsync(file.JobId.Value, ct);
+                file.Status = status.Status;
+                file.Progress = status.Progress;
+                file.ErrorMessage = status.ErrorMessage;
+                StateHasChanged();
+
+                if (status.Status is "Completed" or "Failed") break;
+                await Task.Delay(1000, ct);
+            }
+            catch { break; }
+        }
+    }
+
+    private async Task PollBatchStatus()
+    {
+        if (!_batchId.HasValue) return;
+
+        _pollCts?.Cancel();
+        _pollCts = new CancellationTokenSource();
+        var ct = _pollCts.Token;
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var status = await ApiClient.GetBatchStatusAsync(_batchId.Value, ct);
+
+                foreach (var fileStatus in status.Files)
+                {
+                    var file = _selectedFiles.FirstOrDefault(f => f.JobId == fileStatus.JobId);
+                    if (file != null)
+                    {
+                        file.Status = fileStatus.Status;
+                        file.Progress = fileStatus.Progress;
+                        file.ErrorMessage = fileStatus.ErrorMessage;
+                    }
+                }
+
+                StateHasChanged();
+
+                if (status.Status is "Completed" or "Failed") break;
+                await Task.Delay(1000, ct);
+            }
+            catch { break; }
+        }
+    }
+
+    private async Task DownloadFile(FileItem file)
+    {
+        if (!file.JobId.HasValue) return;
+        try
+        {
+            var (stream, fileName) = await ApiClient.DownloadFileAsync(file.JobId.Value);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            await JS.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Download failed: {ex.Message}";
+        }
+    }
+
+    private async Task DownloadAllZip()
+    {
+        if (!_batchId.HasValue) return;
+        try
+        {
+            var stream = await ApiClient.DownloadBatchZipAsync(_batchId.Value);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            await JS.InvokeVoidAsync("downloadFile", "converted_files.zip", Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Download failed: {ex.Message}";
+        }
+    }
+
+    private void RemoveFile(FileItem file)
+    {
+        _selectedFiles.Remove(file);
+        UpdateAvailableTargets();
+    }
+
+    private void ClearFiles()
+    {
+        _selectedFiles.Clear();
+        _availableTargets.Clear();
+        _targetFormat = "";
+        _batchId = null;
+        _pollCts?.Cancel();
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F1} MB";
+    }
+
+    private class FileItem
+    {
+        public string Name { get; set; } = "";
+        public string Extension { get; set; } = "";
+        public long Size { get; set; }
+        public IBrowserFile? BrowserFile { get; set; }
+        public Guid? JobId { get; set; }
+        public string Status { get; set; } = "Ready";
+        public int Progress { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public void Dispose()
+    {
+        _pollCts?.Cancel();
+        _pollCts?.Dispose();
+    }
+}

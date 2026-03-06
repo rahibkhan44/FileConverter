@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FileConverter.Maui.ViewModels"
+             xmlns:models="clr-namespace:FileConverter.Maui.Models"
+             x:Class="FileConverter.Maui.Pages.ConvertPage"
+             Title="Convert Files">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+
+            <!-- Hero -->
+            <Label Text="File Converter"
+                   FontSize="28" FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
+            <Label Text="Convert documents &amp; images instantly"
+                   FontSize="16" TextColor="Gray"
+                   HorizontalOptions="Center" />
+
+            <!-- Pick Files Button -->
+            <Button Text="Pick Files"
+                    Command="{Binding PickFilesCommand}"
+                    HorizontalOptions="Center"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontSize="18"
+                    Padding="30,15"
+                    CornerRadius="10" />
+
+            <!-- Target Format Picker -->
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center"
+                                   IsVisible="{Binding Files.Count, Converter={StaticResource IntToBoolConverter}}">
+                <Label Text="Convert to:" VerticalOptions="Center" FontSize="16" FontAttributes="Bold" />
+                <Picker ItemsSource="{Binding AvailableTargets}"
+                        SelectedItem="{Binding SelectedTarget}"
+                        WidthRequest="120"
+                        FontSize="16" />
+            </HorizontalStackLayout>
+
+            <!-- File List -->
+            <CollectionView ItemsSource="{Binding Files}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:FileItem">
+                        <Frame Margin="0,5" Padding="12" CornerRadius="8"
+                               BorderColor="LightGray" HasShadow="False">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                                <!-- Extension badge -->
+                                <Frame Grid.Column="0" BackgroundColor="Gray" Padding="6,3"
+                                       CornerRadius="5" HasShadow="False" VerticalOptions="Center">
+                                    <Label Text="{Binding Extension}" TextColor="White"
+                                           FontSize="11" FontAttributes="Bold" />
+                                </Frame>
+
+                                <!-- File name + size -->
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" FontSize="14" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding SizeDisplay}" FontSize="11" TextColor="Gray" />
+                                </VerticalStackLayout>
+
+                                <!-- Status / Progress -->
+                                <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" WidthRequest="90">
+                                    <ProgressBar Progress="{Binding ProgressValue}"
+                                                 IsVisible="{Binding IsProcessing}"
+                                                 ProgressColor="{StaticResource Primary}" />
+                                    <Label Text="{Binding StatusDisplay}"
+                                           TextColor="{Binding StatusColor}"
+                                           FontSize="12" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+
+                                <!-- Actions -->
+                                <HorizontalStackLayout Grid.Column="3" Spacing="5" VerticalOptions="Center">
+                                    <Button Text="Save"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ConvertViewModel}}, Path=DownloadFileCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Status, Converter={StaticResource CompletedConverter}}"
+                                            FontSize="12" Padding="8,4" CornerRadius="5" />
+                                    <Button Text="X"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ConvertViewModel}}, Path=RemoveFileCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="IndianRed" TextColor="White"
+                                            FontSize="12" Padding="8,4" CornerRadius="5" />
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Action Buttons -->
+            <HorizontalStackLayout Spacing="15" HorizontalOptions="Center"
+                                   IsVisible="{Binding Files.Count, Converter={StaticResource IntToBoolConverter}}">
+                <Button Text="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}"
+                        Command="{Binding ConvertAllCommand}"
+                        IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBoolConverter}}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White" FontSize="16"
+                        Padding="25,12" CornerRadius="8" />
+
+                <Button Text="Download All (.zip)"
+                        Command="{Binding DownloadAllZipCommand}"
+                        IsVisible="{Binding HasCompletedFiles}"
+                        BackgroundColor="Green" TextColor="White"
+                        FontSize="16" Padding="25,12" CornerRadius="8" />
+
+                <Button Text="Clear"
+                        Command="{Binding ClearFilesCommand}"
+                        BackgroundColor="Gray" TextColor="White"
+                        FontSize="16" Padding="25,12" CornerRadius="8" />
+            </HorizontalStackLayout>
+
+            <!-- Error -->
+            <Frame IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}"
+                   BackgroundColor="#FFEBEE" BorderColor="IndianRed" CornerRadius="8" Padding="12">
+                <Label Text="{Binding ErrorMessage}" TextColor="IndianRed" />
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

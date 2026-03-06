@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FileConverter.API/FileConverter.API.csproj" />
+    <Project Path="src/FileConverter.Application/FileConverter.Application.csproj" />
+    <Project Path="src/FileConverter.Domain/FileConverter.Domain.csproj" />
+    <Project Path="src/FileConverter.Infrastructure/FileConverter.Infrastructure.csproj" />
+    <Project Path="src/FileConverter.Maui/FileConverter.Maui.csproj" />
+    <Project Path="src/FileConverter.Shared/FileConverter.Shared.csproj" />
+    <Project Path="src/FileConverter.Web/FileConverter.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FileConverter.API.Tests/FileConverter.API.Tests.csproj" />
+  </Folder>
+</Solution>
