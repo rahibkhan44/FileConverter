@@ -48,11 +48,22 @@ public static class SupportedConversions
         // HEIC — read-only (patent blocks write), convert to any raster + PDF
         [FileFormat.Heic] = new(RasterOutputs) { FileFormat.Pdf },
 
+        // Additional raster formats via Magick.NET
+        [FileFormat.Eps]  = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Pcx]  = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Wbmp] = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Pbm]  = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Pgm]  = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Ppm]  = new(RasterOutputs) { FileFormat.Pdf },
+
         // RAW camera formats — read-only, convert to raster + PDF
         [FileFormat.Dng] = new(RasterOutputs) { FileFormat.Pdf },
         [FileFormat.Cr2] = new(RasterOutputs) { FileFormat.Pdf },
         [FileFormat.Nef] = new(RasterOutputs) { FileFormat.Pdf },
         [FileFormat.Arw] = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Orf] = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Raf] = new(RasterOutputs) { FileFormat.Pdf },
+        [FileFormat.Rw2] = new(RasterOutputs) { FileFormat.Pdf },
 
         // SVG — vector to raster + PDF (Svg.Skia)
         [FileFormat.Svg] = new() { FileFormat.Png, FileFormat.Jpg, FileFormat.WebP, FileFormat.Bmp, FileFormat.Tiff, FileFormat.Gif, FileFormat.Pdf },
@@ -77,10 +88,11 @@ public static class SupportedConversions
         // ═══════════════════════════════════════════
         // SPREADSHEETS — cross-convert
         // ═══════════════════════════════════════════
-        [FileFormat.Xlsx] = new() { FileFormat.Pdf, FileFormat.Xls, FileFormat.Ods, FileFormat.Csv, FileFormat.Html, FileFormat.Txt },
-        [FileFormat.Xls]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Ods, FileFormat.Csv, FileFormat.Html, FileFormat.Txt },
-        [FileFormat.Ods]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Xls, FileFormat.Csv, FileFormat.Html, FileFormat.Txt },
-        [FileFormat.Csv]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Xls, FileFormat.Ods, FileFormat.Html },
+        [FileFormat.Xlsx] = new() { FileFormat.Pdf, FileFormat.Xls, FileFormat.Ods, FileFormat.Csv, FileFormat.Tsv, FileFormat.Html, FileFormat.Txt },
+        [FileFormat.Xls]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Ods, FileFormat.Csv, FileFormat.Tsv, FileFormat.Html, FileFormat.Txt },
+        [FileFormat.Ods]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Xls, FileFormat.Csv, FileFormat.Tsv, FileFormat.Html, FileFormat.Txt },
+        [FileFormat.Csv]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Xls, FileFormat.Ods, FileFormat.Tsv, FileFormat.Html },
+        [FileFormat.Tsv]  = new() { FileFormat.Pdf, FileFormat.Xlsx, FileFormat.Xls, FileFormat.Ods, FileFormat.Csv, FileFormat.Html },
 
         // ═══════════════════════════════════════════
         // PRESENTATIONS — cross-convert
@@ -154,6 +166,15 @@ public static class SupportedConversions
             "cr2" => FileFormat.Cr2,
             "nef" => FileFormat.Nef,
             "arw" => FileFormat.Arw,
+            "orf" => FileFormat.Orf,
+            "raf" => FileFormat.Raf,
+            "rw2" => FileFormat.Rw2,
+            "eps" => FileFormat.Eps,
+            "pcx" => FileFormat.Pcx,
+            "wbmp" => FileFormat.Wbmp,
+            "pbm" => FileFormat.Pbm,
+            "pgm" => FileFormat.Pgm,
+            "ppm" => FileFormat.Ppm,
             "pdf" => FileFormat.Pdf,
             "docx" => FileFormat.Docx,
             "doc" => FileFormat.Doc,
@@ -166,6 +187,7 @@ public static class SupportedConversions
             "xls" => FileFormat.Xls,
             "ods" => FileFormat.Ods,
             "csv" => FileFormat.Csv,
+            "tsv" => FileFormat.Tsv,
             "pptx" => FileFormat.Pptx,
             "ppt" => FileFormat.Ppt,
             "odp" => FileFormat.Odp,
@@ -210,6 +232,15 @@ public static class SupportedConversions
         FileFormat.Cr2 => ".cr2",
         FileFormat.Nef => ".nef",
         FileFormat.Arw => ".arw",
+        FileFormat.Orf => ".orf",
+        FileFormat.Raf => ".raf",
+        FileFormat.Rw2 => ".rw2",
+        FileFormat.Eps => ".eps",
+        FileFormat.Pcx => ".pcx",
+        FileFormat.Wbmp => ".wbmp",
+        FileFormat.Pbm => ".pbm",
+        FileFormat.Pgm => ".pgm",
+        FileFormat.Ppm => ".ppm",
         FileFormat.Pdf => ".pdf",
         FileFormat.Docx => ".docx",
         FileFormat.Doc => ".doc",
@@ -222,6 +253,7 @@ public static class SupportedConversions
         FileFormat.Xls => ".xls",
         FileFormat.Ods => ".ods",
         FileFormat.Csv => ".csv",
+        FileFormat.Tsv => ".tsv",
         FileFormat.Pptx => ".pptx",
         FileFormat.Ppt => ".ppt",
         FileFormat.Odp => ".odp",
@@ -250,8 +282,12 @@ public static class SupportedConversions
             or FileFormat.Bmp or FileFormat.Tiff or FileFormat.Svg or FileFormat.Ico
             or FileFormat.Heic or FileFormat.Avif or FileFormat.Psd or FileFormat.Tga
             or FileFormat.Jp2 or FileFormat.Jfif or FileFormat.Dds
-            or FileFormat.Dng or FileFormat.Cr2 or FileFormat.Nef or FileFormat.Arw => FormatCategory.Image,
-        FileFormat.Xlsx or FileFormat.Xls or FileFormat.Ods or FileFormat.Csv => FormatCategory.Spreadsheet,
+            or FileFormat.Dng or FileFormat.Cr2 or FileFormat.Nef or FileFormat.Arw
+            or FileFormat.Orf or FileFormat.Raf or FileFormat.Rw2
+            or FileFormat.Eps or FileFormat.Pcx or FileFormat.Wbmp
+            or FileFormat.Pbm or FileFormat.Pgm or FileFormat.Ppm => FormatCategory.Image,
+        FileFormat.Xlsx or FileFormat.Xls or FileFormat.Ods or FileFormat.Csv
+            or FileFormat.Tsv => FormatCategory.Spreadsheet,
         FileFormat.Pptx or FileFormat.Ppt or FileFormat.Odp => FormatCategory.Presentation,
         FileFormat.Mp4 or FileFormat.Mkv or FileFormat.WebM or FileFormat.Avi
             or FileFormat.Mov or FileFormat.Flv or FileFormat.Wmv or FileFormat.Ts => FormatCategory.Video,

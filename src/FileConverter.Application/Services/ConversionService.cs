@@ -10,21 +10,24 @@ public class ConversionService
     private readonly IFileStorageService _storage;
     private readonly IJobTracker _jobTracker;
     private readonly IRateLimitService _rateLimit;
+    private readonly IJobQueue _jobQueue;
 
-    private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50MB
+    private const long MaxFileSizeBytes = 500 * 1024 * 1024; // 500MB
 
-    public ConversionService(IFileStorageService storage, IJobTracker jobTracker, IRateLimitService rateLimit)
+    public ConversionService(IFileStorageService storage, IJobTracker jobTracker,
+        IRateLimitService rateLimit, IJobQueue jobQueue)
     {
         _storage = storage;
         _jobTracker = jobTracker;
         _rateLimit = rateLimit;
+        _jobQueue = jobQueue;
     }
 
     public async Task<ConvertResponse> CreateJobAsync(Stream fileStream, string fileName, string targetFormatStr,
         Dictionary<string, string>? options, string ipAddress, CancellationToken cancellationToken)
     {
         if (!_rateLimit.IsAllowed(ipAddress))
-            throw new InvalidOperationException("Daily conversion limit reached (20/day). Try again tomorrow.");
+            throw new InvalidOperationException("Daily conversion limit reached. Try again tomorrow.");
 
         var sourceFormat = SupportedConversions.ParseFormat(Path.GetExtension(fileName))
             ?? throw new ArgumentException($"Unsupported file format: {Path.GetExtension(fileName)}");
@@ -40,7 +43,7 @@ public class ConversionService
         if (_storage.GetFileSize(savedPath) > MaxFileSizeBytes)
         {
             _storage.DeleteFile(savedPath);
-            throw new ArgumentException("File exceeds maximum size of 50MB.");
+            throw new ArgumentException("File exceeds maximum size of 500MB.");
         }
 
         var job = new ConversionJob
@@ -54,6 +57,8 @@ public class ConversionService
 
         _jobTracker.AddJob(job);
         _rateLimit.RecordConversion(ipAddress);
+
+        await _jobQueue.EnqueueAsync(job.Id, cancellationToken);
 
         return new ConvertResponse
         {
@@ -71,7 +76,7 @@ public class ConversionService
             throw new ArgumentException("Maximum 100 files per batch.");
 
         if (!_rateLimit.IsAllowed(ipAddress))
-            throw new InvalidOperationException("Daily conversion limit reached (20/day). Try again tomorrow.");
+            throw new InvalidOperationException("Daily conversion limit reached. Try again tomorrow.");
 
         var targetFormat = SupportedConversions.ParseFormat(targetFormatStr)
             ?? throw new ArgumentException($"Unsupported target format: {targetFormatStr}");
@@ -119,6 +124,10 @@ public class ConversionService
 
         _rateLimit.RecordConversion(ipAddress);
         _jobTracker.AddBatchJob(batch);
+
+        // Enqueue all batch jobs
+        foreach (var job in batch.Jobs)
+            await _jobQueue.EnqueueAsync(job.Id, cancellationToken);
 
         return new BatchConvertResponse
         {
