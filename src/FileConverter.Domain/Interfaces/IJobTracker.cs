@@ -10,4 +10,5 @@ public interface IJobTracker
     BatchConversionJob? GetBatchJob(Guid id);
     void CleanupExpired(TimeSpan maxAge);
     IEnumerable<ConversionJob> GetPendingJobs();
+    void UpdateJob(ConversionJob job);
 }

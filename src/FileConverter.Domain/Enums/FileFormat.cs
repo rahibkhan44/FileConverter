@@ -21,11 +21,22 @@ public enum FileFormat
     // Images — Vector
     Svg,
 
+    // Images — Additional raster (Magick.NET)
+    Eps,
+    Pcx,
+    Wbmp,
+    Pbm,
+    Pgm,
+    Ppm,
+
     // Images — RAW Camera
     Dng,
     Cr2,
     Nef,
     Arw,
+    Orf,
+    Raf,
+    Rw2,
 
     // Documents
     Pdf,
@@ -42,6 +53,7 @@ public enum FileFormat
     Xls,
     Ods,
     Csv,
+    Tsv,
 
     // Presentations
     Pptx,
