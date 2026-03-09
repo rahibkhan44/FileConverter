@@ -111,12 +111,89 @@ public class PdfToolsService
 
         foreach (var pageNum in pageNumbers)
         {
-            int index = pageNum - 1; // Convert to 0-based
+            int index = pageNum - 1;
             if (index >= 0 && index < inputDoc.PageCount)
                 outputDoc.AddPage(inputDoc.Pages[index]);
         }
 
         outputDoc.Save(outputPath);
         return outputPath;
+    }
+
+    /// <summary>
+    /// Rotates all pages of a PDF by the specified degrees (90, 180, 270).
+    /// </summary>
+    public string RotatePages(string inputPath, string outputPath, int degrees)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        using var inputDoc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+
+        foreach (var page in inputDoc.Pages)
+        {
+            page.Rotate = (page.Rotate + degrees) % 360;
+        }
+
+        inputDoc.Save(outputPath);
+        return outputPath;
+    }
+
+    /// <summary>
+    /// Adds a text watermark to every page of a PDF.
+    /// Uses PdfSharpCore drawing.
+    /// </summary>
+    public string AddWatermark(string inputPath, string outputPath, string text, double fontSize = 48, double opacity = 0.3)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+
+        var color = PdfSharpCore.Drawing.XColor.FromArgb((int)(opacity * 255), 128, 128, 128);
+        var font = new PdfSharpCore.Drawing.XFont("Arial", fontSize);
+        var brush = new PdfSharpCore.Drawing.XSolidBrush(color);
+
+        foreach (var page in doc.Pages)
+        {
+            using var gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(page, PdfSharpCore.Drawing.XGraphicsPdfPageOptions.Append);
+            var size = gfx.MeasureString(text, font);
+
+            // Center and rotate 45 degrees
+            gfx.TranslateTransform(page.Width.Point / 2, page.Height.Point / 2);
+            gfx.RotateTransform(-45);
+            gfx.DrawString(text, font, brush,
+                new PdfSharpCore.Drawing.XPoint(-size.Width / 2, size.Height / 2));
+        }
+
+        doc.Save(outputPath);
+        return outputPath;
+    }
+
+    /// <summary>
+    /// Reads PDF metadata (title, author, subject, keywords, creator, producer, creation/modification dates).
+    /// </summary>
+    public PdfMetadata GetMetadata(string inputPath)
+    {
+        using var doc = UglyToad.PdfPig.PdfDocument.Open(inputPath);
+        var info = doc.Information;
+
+        return new PdfMetadata
+        {
+            Title = info.Title ?? "",
+            Author = info.Author ?? "",
+            Subject = info.Subject ?? "",
+            Keywords = info.Keywords ?? "",
+            Creator = info.Creator ?? "",
+            Producer = info.Producer ?? "",
+            PageCount = doc.NumberOfPages
+        };
+    }
+
+    public class PdfMetadata
+    {
+        public string Title { get; set; } = "";
+        public string Author { get; set; } = "";
+        public string Subject { get; set; } = "";
+        public string Keywords { get; set; } = "";
+        public string Creator { get; set; } = "";
+        public string Producer { get; set; } = "";
+        public int PageCount { get; set; }
     }
 }

@@ -38,16 +38,26 @@
                         </ul>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/pricing">
+                            <i class="bi bi-tag me-1"></i>Pricing
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/about">
                             <i class="bi bi-info-circle me-1"></i>About
                         </a>
                     </li>
                 </ul>
 
-                <!-- Theme toggle -->
-                <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-2" @onclick="ToggleTheme" title="Toggle dark mode" aria-label="Toggle theme">
-                    <i class="bi @(_isDark ? "bi-sun-fill" : "bi-moon-fill") fs-5"></i>
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/login" class="btn btn-sm btn-outline-primary">Login</a>
+                    <a href="/register" class="btn btn-sm btn-fc-primary">Register</a>
+
+                    <!-- Theme toggle -->
+                    <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-2" @onclick="ToggleTheme" title="Toggle dark mode" aria-label="Toggle theme">
+                        <i class="bi @(_isDark ? "bi-sun-fill" : "bi-moon-fill") fs-5"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -73,6 +83,7 @@
                         <a href="/tools/images" class="text-decoration-none text-fc-muted small">Image Tools</a>
                         <a href="/tools/video" class="text-decoration-none text-fc-muted small">Video Tools</a>
                         <a href="/tools/audio" class="text-decoration-none text-fc-muted small">Audio Tools</a>
+                        <a href="/pricing" class="text-decoration-none text-fc-muted small">Pricing</a>
                     </div>
                 </div>
                 <div class="col-md-4">

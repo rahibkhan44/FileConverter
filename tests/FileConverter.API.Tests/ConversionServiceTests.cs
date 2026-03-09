@@ -13,7 +13,8 @@ public class ConversionServiceTests
         var storage = new TempFileStorageService();
         var jobTracker = new InMemoryJobTracker();
         var rateLimit = new RateLimitService();
-        return new ConversionService(storage, jobTracker, rateLimit);
+        var jobQueue = new ChannelJobQueue();
+        return new ConversionService(storage, jobTracker, rateLimit, jobQueue);
     }
 
     [Fact]
@@ -57,7 +58,8 @@ public class ConversionServiceTests
         var storage = new TempFileStorageService();
         var jobTracker = new InMemoryJobTracker();
         var rateLimit = new RateLimitService();
-        var service = new ConversionService(storage, jobTracker, rateLimit);
+        var jobQueue = new ChannelJobQueue();
+        var service = new ConversionService(storage, jobTracker, rateLimit, jobQueue);
 
         for (int i = 0; i < 20; i++)
         {

@@ -7,7 +7,10 @@
 
 <PageTitle>Convert @_sourceUpper to @_targetUpper Free Online | FileConverter</PageTitle>
 <HeadContent>
-    <meta name="description" content="Convert @_sourceUpper to @_targetUpper online for free. No signup required. Fast, secure, server-side conversion." />
+    <meta name="description" content="Convert @_sourceUpper to @_targetUpper online for free. No signup, no watermarks. Fast server-side conversion with support for batch files up to 500MB." />
+    <meta property="og:title" content="Convert @_sourceUpper to @_targetUpper Free Online | FileConverter" />
+    <meta property="og:description" content="Free @_sourceUpper to @_targetUpper converter. Upload, convert, download. No signup required." />
+    <link rel="canonical" href="/convert/@_source-to-@_target" />
 </HeadContent>
 
 <!-- Hero -->
@@ -178,6 +181,55 @@
                             <span class="format-badge format-badge-@(ClientSupportedFormats.GetCategory(fmt).ToLowerInvariant())">@fmt.ToUpperInvariant()</span>
                         </a>
                     }
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="row justify-content-center mt-5">
+            <div class="col-lg-8">
+                <h3 class="fw-bold text-center mb-4">@_sourceUpper to @_targetUpper FAQ</h3>
+                <div class="accordion" id="conversionFaq">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cfaq1">
+                                How do I convert @_sourceUpper to @_targetUpper?
+                            </button>
+                        </h2>
+                        <div id="cfaq1" class="accordion-collapse collapse show" data-bs-parent="#conversionFaq">
+                            <div class="accordion-body">Upload your @(ClientSupportedFormats.GetFriendlyName(_source)) file using the drop zone above, then click Convert. Your @(ClientSupportedFormats.GetFriendlyName(_target)) file will be ready to download in seconds.</div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cfaq2">
+                                Is the conversion free?
+                            </button>
+                        </h2>
+                        <div id="cfaq2" class="accordion-collapse collapse" data-bs-parent="#conversionFaq">
+                            <div class="accordion-body">Yes! FileConverter is completely free to use with up to 20 conversions per day and 100MB file size limit on the free tier. No signup required.</div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cfaq3">
+                                Are my files secure?
+                            </button>
+                        </h2>
+                        <div id="cfaq3" class="accordion-collapse collapse" data-bs-parent="#conversionFaq">
+                            <div class="accordion-body">Yes. All uploaded files are processed server-side and automatically deleted after 2 hours. We use HTTPS encryption and never share files with third parties.</div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cfaq4">
+                                Can I convert multiple files at once?
+                            </button>
+                        </h2>
+                        <div id="cfaq4" class="accordion-collapse collapse" data-bs-parent="#conversionFaq">
+                            <div class="accordion-body">Yes! Upload up to 100 files at once and convert them all in a single batch. You can download them individually or as a ZIP archive.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

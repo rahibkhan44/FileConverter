@@ -1,18 +1,19 @@
 @page "/tools/pdf"
 @rendermode InteractiveServer
+@using FileConverter.Shared.Models
 @inject FileConverterApiClient ApiClient
 @inject IJSRuntime JS
 
-<PageTitle>Free PDF Tools - Merge, Split, Extract | FileConverter</PageTitle>
+<PageTitle>Free PDF Tools - Merge, Split, Rotate, Watermark | FileConverter</PageTitle>
 <HeadContent>
-    <meta name="description" content="Free online PDF tools. Merge multiple PDFs, split by page ranges, extract specific pages. No signup required." />
+    <meta name="description" content="Free online PDF tools. Merge, split, rotate, watermark PDFs and extract metadata. No signup required." />
 </HeadContent>
 
 <!-- Hero -->
 <section class="hero-section text-center">
     <div class="container">
         <h1 class="display-5 mb-3"><i class="bi bi-file-earmark-pdf me-2"></i>PDF Tools</h1>
-        <p class="lead">Merge, split, and extract pages from PDF files. Free and secure.</p>
+        <p class="lead">Merge, split, rotate, watermark PDFs and extract metadata. Free and secure.</p>
     </div>
 </section>
 
@@ -37,6 +38,21 @@
         <li class="nav-item">
             <button class="nav-link @(_activeTool == "pagecount" ? "active bg-primary" : "")" @onclick='() => SetTool("pagecount")'>
                 <i class="bi bi-hash me-1"></i>Page Count
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "rotate" ? "active bg-primary" : "")" @onclick='() => SetTool("rotate")'>
+                <i class="bi bi-arrow-repeat me-1"></i>Rotate
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "watermark" ? "active bg-primary" : "")" @onclick='() => SetTool("watermark")'>
+                <i class="bi bi-droplet me-1"></i>Watermark
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(_activeTool == "metadata" ? "active bg-primary" : "")" @onclick='() => SetTool("metadata")'>
+                <i class="bi bi-info-circle me-1"></i>Metadata
             </button>
         </li>
     </ul>
@@ -145,6 +161,98 @@
                 </div>
             }
 
+            @if (_activeTool == "rotate")
+            {
+                <!-- Rotate -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-arrow-repeat me-2 text-primary"></i>Rotate PDF</h4>
+                    <p class="text-fc-muted mb-3">Rotate all pages by 90, 180, or 270 degrees.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnRotateFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_rotateFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Rotation angle</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn @(_rotateDegrees == 90 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDegrees = 90">90°</button>
+                                <button class="btn @(_rotateDegrees == 180 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDegrees = 180">180°</button>
+                                <button class="btn @(_rotateDegrees == 270 ? "btn-fc-primary" : "btn-outline-secondary")" @onclick="() => _rotateDegrees = 270">270°</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="RotatePdf" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-arrow-repeat me-1"></i>Rotate PDF
+                        </button>
+                    }
+                </div>
+            }
+            else if (_activeTool == "watermark")
+            {
+                <!-- Watermark -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-droplet me-2 text-primary"></i>Add Watermark</h4>
+                    <p class="text-fc-muted mb-3">Add a diagonal text watermark to every page.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnWatermarkFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_watermarkFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Watermark text</label>
+                            <input type="text" class="form-control" @bind="_watermarkText" placeholder="e.g., CONFIDENTIAL" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-medium">Font size</label>
+                                <input type="number" class="form-control" @bind="_watermarkFontSize" min="12" max="120" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-medium">Opacity (@((_watermarkOpacity * 100).ToString("0"))%)</label>
+                                <input type="range" class="form-range mt-2" min="0.05" max="1" step="0.05" @bind="_watermarkOpacity" />
+                            </div>
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="WatermarkPdf" disabled="@(string.IsNullOrWhiteSpace(_watermarkText) || _isProcessing)">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-droplet me-1"></i>Add Watermark
+                        </button>
+                    }
+                </div>
+            }
+            else if (_activeTool == "metadata")
+            {
+                <!-- Metadata -->
+                <div class="fc-card p-4">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>PDF Metadata</h4>
+                    <p class="text-fc-muted mb-3">View metadata information from a PDF file.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnMetadataFileSelected" accept=".pdf" class="form-control" />
+                    </div>
+
+                    @if (_metadata != null)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr><td class="fw-medium">Title</td><td>@(_metadata.Title ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Author</td><td>@(_metadata.Author ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Subject</td><td>@(_metadata.Subject ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Keywords</td><td>@(_metadata.Keywords ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Creator</td><td>@(_metadata.Creator ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Producer</td><td>@(_metadata.Producer ?? "—")</td></tr>
+                                    <tr><td class="fw-medium">Pages</td><td>@_metadata.PageCount</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+
             @if (!string.IsNullOrEmpty(_errorMessage))
             {
                 <div class="alert alert-danger mt-3 d-flex align-items-center">
@@ -209,6 +317,19 @@
     // Page Count
     private int? _pageCount;
 
+    // Rotate
+    private IBrowserFile? _rotateFile;
+    private int _rotateDegrees = 90;
+
+    // Watermark
+    private IBrowserFile? _watermarkFile;
+    private string _watermarkText = "";
+    private int _watermarkFontSize = 48;
+    private float _watermarkOpacity = 0.3f;
+
+    // Metadata
+    private PdfMetadataResponse? _metadata;
+
     private void SetTool(string tool)
     {
         _activeTool = tool;
@@ -232,6 +353,35 @@
     {
         _extractFile = e.File;
         _errorMessage = null;
+    }
+
+    private void OnRotateFileSelected(InputFileChangeEventArgs e)
+    {
+        _rotateFile = e.File;
+        _errorMessage = null;
+    }
+
+    private void OnWatermarkFileSelected(InputFileChangeEventArgs e)
+    {
+        _watermarkFile = e.File;
+        _errorMessage = null;
+    }
+
+    private async Task OnMetadataFileSelected(InputFileChangeEventArgs e)
+    {
+        _errorMessage = null;
+        _metadata = null;
+        _isProcessing = true;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await e.File.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+            _metadata = await ApiClient.GetPdfMetadataAsync(ms, e.File.Name);
+        }
+        catch (Exception ex) { _errorMessage = $"Failed to read metadata: {ex.Message}"; }
+        finally { _isProcessing = false; }
     }
 
     private async Task OnPageCountFileSelected(InputFileChangeEventArgs e)
@@ -323,6 +473,52 @@
             _successMessage = "Pages extracted successfully!";
         }
         catch (Exception ex) { _errorMessage = $"Extraction failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task RotatePdf()
+    {
+        if (_rotateFile == null) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _rotateFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var (resultStream, fileName) = await ApiClient.RotatePdfAsync(ms, _rotateFile.Name, _rotateDegrees);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+            _successMessage = $"PDF rotated {_rotateDegrees}° successfully!";
+        }
+        catch (Exception ex) { _errorMessage = $"Rotation failed: {ex.Message}"; }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task WatermarkPdf()
+    {
+        if (_watermarkFile == null || string.IsNullOrWhiteSpace(_watermarkText)) return;
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await _watermarkFile.OpenReadStream(524_288_000).CopyToAsync(ms);
+            ms.Position = 0;
+
+            var (resultStream, fileName) = await ApiClient.WatermarkPdfAsync(ms, _watermarkFile.Name, _watermarkText, _watermarkFontSize, _watermarkOpacity);
+            using var result = new MemoryStream();
+            await resultStream.CopyToAsync(result);
+            await JS.InvokeVoidAsync("downloadFile", fileName, System.Convert.ToBase64String(result.ToArray()));
+            _successMessage = "Watermark added successfully!";
+        }
+        catch (Exception ex) { _errorMessage = $"Watermark failed: {ex.Message}"; }
         finally { _isProcessing = false; }
     }
 }

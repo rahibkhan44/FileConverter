@@ -3,7 +3,7 @@
 
 <PageTitle>All Supported Formats | FileConverter</PageTitle>
 <HeadContent>
-    <meta name="description" content="Browse all 30+ file formats supported by FileConverter. Images, documents, spreadsheets, presentations, RAW photos, and more." />
+    <meta name="description" content="Browse all 70+ file formats supported by FileConverter. Images, documents, spreadsheets, presentations, video, audio, RAW photos, and more." />
 </HeadContent>
 
 <!-- Hero -->
@@ -44,10 +44,12 @@
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="fc-card p-3 h-100">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="format-badge format-badge-@(ClientSupportedFormats.GetCategory(fmt.Key).ToLowerInvariant())">
-                            @fmt.Key.ToUpperInvariant()
-                        </span>
-                        <span class="fw-semibold small">@ClientSupportedFormats.GetFriendlyName(fmt.Key)</span>
+                        <a href="/formats/@fmt.Key" class="text-decoration-none">
+                            <span class="format-badge format-badge-@(ClientSupportedFormats.GetCategory(fmt.Key).ToLowerInvariant())">
+                                @fmt.Key.ToUpperInvariant()
+                            </span>
+                        </a>
+                        <a href="/formats/@fmt.Key" class="fw-semibold small text-decoration-none text-body">@ClientSupportedFormats.GetFriendlyName(fmt.Key)</a>
                     </div>
                     <div class="d-flex flex-wrap gap-1">
                         @foreach (var target in fmt.Value)
@@ -139,6 +141,8 @@
         "Document" => "bi-file-earmark-text",
         "Spreadsheet" => "bi-table",
         "Presentation" => "bi-easel",
+        "Video" => "bi-camera-video",
+        "Audio" => "bi-music-note-beamed",
         _ => "bi-file-earmark"
     };
 }

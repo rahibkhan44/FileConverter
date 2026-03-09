@@ -29,11 +29,22 @@ public static class ClientSupportedFormats
         ["heic"] = new(RasterOutputs) { "pdf" },
         ["heif"] = new(RasterOutputs) { "pdf" },
 
+        // Additional raster formats (Magick.NET)
+        ["eps"]  = new(RasterOutputs) { "pdf" },
+        ["pcx"]  = new(RasterOutputs) { "pdf" },
+        ["wbmp"] = new(RasterOutputs) { "pdf" },
+        ["pbm"]  = new(RasterOutputs) { "pdf" },
+        ["pgm"]  = new(RasterOutputs) { "pdf" },
+        ["ppm"]  = new(RasterOutputs) { "pdf" },
+
         // RAW camera — read-only, convert to raster + PDF
         ["dng"] = new(RasterOutputs) { "pdf" },
         ["cr2"] = new(RasterOutputs) { "pdf" },
         ["nef"] = new(RasterOutputs) { "pdf" },
         ["arw"] = new(RasterOutputs) { "pdf" },
+        ["orf"] = new(RasterOutputs) { "pdf" },
+        ["raf"] = new(RasterOutputs) { "pdf" },
+        ["rw2"] = new(RasterOutputs) { "pdf" },
 
         // SVG — vector to raster + PDF
         ["svg"] = new() { "png", "jpg", "webp", "bmp", "tiff", "gif", "pdf" },
@@ -54,10 +65,11 @@ public static class ClientSupportedFormats
         ["pdf"] = new() { "txt", "png", "jpg" },
 
         // ═══ SPREADSHEETS ═══
-        ["xlsx"] = new() { "pdf", "xls", "ods", "csv", "html", "txt" },
-        ["xls"]  = new() { "pdf", "xlsx", "ods", "csv", "html", "txt" },
-        ["ods"]  = new() { "pdf", "xlsx", "xls", "csv", "html", "txt" },
-        ["csv"]  = new() { "pdf", "xlsx", "xls", "ods", "html" },
+        ["xlsx"] = new() { "pdf", "xls", "ods", "csv", "tsv", "html", "txt" },
+        ["xls"]  = new() { "pdf", "xlsx", "ods", "csv", "tsv", "html", "txt" },
+        ["ods"]  = new() { "pdf", "xlsx", "xls", "csv", "tsv", "html", "txt" },
+        ["csv"]  = new() { "pdf", "xlsx", "xls", "ods", "tsv", "html" },
+        ["tsv"]  = new() { "pdf", "xlsx", "xls", "ods", "csv", "html" },
 
         // ═══ PRESENTATIONS ═══
         ["pptx"] = new() { "pdf", "odp", "txt", "html" },
@@ -116,8 +128,10 @@ public static class ClientSupportedFormats
         {
             "png" or "jpg" or "jpeg" or "webp" or "gif" or "bmp" or "tiff" or "tif"
                 or "svg" or "ico" or "heic" or "heif" or "avif" or "psd" or "tga"
-                or "jp2" or "jfif" or "dds" or "dng" or "cr2" or "nef" or "arw" => "Image",
-            "xlsx" or "xls" or "ods" or "csv" => "Spreadsheet",
+                or "jp2" or "jfif" or "dds" or "dng" or "cr2" or "nef" or "arw"
+                or "orf" or "raf" or "rw2" or "eps" or "pcx" or "wbmp"
+                or "pbm" or "pgm" or "ppm" => "Image",
+            "xlsx" or "xls" or "ods" or "csv" or "tsv" => "Spreadsheet",
             "pptx" or "odp" => "Presentation",
             "mp4" or "mkv" or "webm" or "avi" or "mov" or "flv" or "wmv" or "ts" => "Video",
             "mp3" or "wav" or "flac" or "aac" or "ogg" or "wma" or "m4a" or "opus" => "Audio",
@@ -136,11 +150,14 @@ public static class ClientSupportedFormats
             "avif" => "AVIF Image", "psd" => "Photoshop", "tga" => "Targa Image",
             "jp2" => "JPEG 2000", "jfif" => "JFIF Image", "dds" => "DirectDraw Surface",
             "dng" => "DNG RAW", "cr2" => "Canon RAW", "nef" => "Nikon RAW", "arw" => "Sony RAW",
+            "orf" => "Olympus RAW", "raf" => "Fujifilm RAW", "rw2" => "Panasonic RAW",
+            "eps" => "EPS Image", "pcx" => "PCX Image", "wbmp" => "Wireless Bitmap",
+            "pbm" => "PBM Image", "pgm" => "PGM Image", "ppm" => "PPM Image",
             "pdf" => "PDF Document", "docx" => "Word Document", "odt" => "OpenDocument Text",
             "rtf" => "Rich Text", "txt" => "Plain Text", "html" or "htm" => "HTML Page",
             "md" or "markdown" => "Markdown",
             "xlsx" => "Excel Spreadsheet", "xls" => "Excel (Legacy)", "ods" => "OpenDocument Sheet",
-            "csv" => "CSV Data", "pptx" => "PowerPoint", "odp" => "OpenDocument Presentation",
+            "csv" => "CSV Data", "tsv" => "TSV Data", "pptx" => "PowerPoint", "odp" => "OpenDocument Presentation",
             "mp4" => "MP4 Video", "mkv" => "MKV Video", "webm" => "WebM Video",
             "avi" => "AVI Video", "mov" => "QuickTime Video", "flv" => "Flash Video",
             "wmv" => "Windows Media Video", "ts" => "MPEG Transport Stream",

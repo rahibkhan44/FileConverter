@@ -45,6 +45,11 @@
             </button>
         </li>
         <li class="nav-item">
+            <button class="nav-link @(_activeTool == "coloradjust" ? "active bg-primary" : "")" @onclick='() => SetTool("coloradjust")'>
+                <i class="bi bi-palette me-1"></i>Color Adjust
+            </button>
+        </li>
+        <li class="nav-item">
             <button class="nav-link @(_activeTool == "strip" ? "active bg-primary" : "")" @onclick='() => SetTool("strip")'>
                 <i class="bi bi-eraser me-1"></i>Strip Metadata
             </button>
@@ -179,6 +184,34 @@
                         </button>
                     }
                 }
+                else if (_activeTool == "coloradjust")
+                {
+                    <h4 class="fw-bold mb-3"><i class="bi bi-palette me-2 text-primary"></i>Color Adjust</h4>
+                    <p class="text-fc-muted mb-3">Adjust brightness, contrast, and saturation. 100 = no change.</p>
+
+                    <div class="mb-3">
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="form-control" />
+                    </div>
+                    @if (_selectedFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Brightness (@_brightness%)</label>
+                            <input type="range" class="form-range" min="0" max="200" @bind="_brightness" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Contrast (@_contrast%)</label>
+                            <input type="range" class="form-range" min="0" max="200" @bind="_contrast" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Saturation (@_saturation%)</label>
+                            <input type="range" class="form-range" min="0" max="200" @bind="_saturation" />
+                        </div>
+                        <button class="btn btn-fc-primary" @onclick="ColorAdjust" disabled="@_isProcessing">
+                            @if (_isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="bi bi-palette me-1"></i>Apply
+                        </button>
+                    }
+                }
                 else if (_activeTool == "strip")
                 {
                     <h4 class="fw-bold mb-3"><i class="bi bi-eraser me-2 text-primary"></i>Strip Metadata</h4>
@@ -267,6 +300,11 @@
     // Watermark
     private string _watermarkText = "";
 
+    // Color Adjust
+    private int _brightness = 100;
+    private int _contrast = 100;
+    private int _saturation = 100;
+
     private void SetTool(string tool)
     {
         _activeTool = tool;
@@ -325,4 +363,7 @@
 
     private Task StripMetadata() =>
         ProcessImage(ms => ApiClient.StripMetadataAsync(ms, _selectedFile!.Name), "Metadata stripped!");
+
+    private Task ColorAdjust() =>
+        ProcessImage(ms => ApiClient.ColorAdjustImageAsync(ms, _selectedFile!.Name, _brightness, _contrast, _saturation), "Color adjusted!");
 }

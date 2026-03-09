@@ -1,0 +1,234 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@using FileConverter.Shared.Models
+@inject FileConverterApiClient ApiClient
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard - FileConverter</PageTitle>
+
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+        <p class="lead">Manage your account, view conversion history, and create API keys.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-fc-muted">Loading your dashboard...</p>
+        </div>
+    }
+    else if (_profile == null)
+    {
+        <div class="text-center py-5">
+            <p class="mb-3">Please sign in to view your dashboard.</p>
+            <a href="/login" class="btn btn-fc-primary">Sign In</a>
+        </div>
+    }
+    else
+    {
+        <!-- Profile Card -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="fc-card p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-person-circle me-2 text-primary"></i>Profile</h5>
+                    <p class="mb-1"><strong>Email:</strong> @_profile.Email</p>
+                    <p class="mb-1"><strong>Tier:</strong> <span class="badge bg-primary">@_profile.Tier</span></p>
+                    <p class="mb-1"><strong>Member since:</strong> @_profile.CreatedAt.ToString("MMM dd, yyyy")</p>
+                    <p class="mb-0"><strong>Total conversions:</strong> @_profile.TotalConversions</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="fc-card p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Usage</h5>
+                    <p class="mb-1"><strong>Daily limit:</strong> @_profile.DailyConversionLimit conversions/day</p>
+                    <p class="mb-0"><strong>Max file size:</strong> @_profile.MaxFileSizeMB MB</p>
+                    @if (_profile.Tier == "Free")
+                    {
+                        <a href="/pricing" class="btn btn-sm btn-outline-primary mt-3">Upgrade Plan</a>
+                    }
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="fc-card p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-key me-2 text-primary"></i>API Keys</h5>
+                    <p class="mb-2">@(_apiKeys?.Count ?? 0) / 5 keys active</p>
+                    <button class="btn btn-sm btn-fc-primary" @onclick="ShowCreateKeyForm">
+                        <i class="bi bi-plus-lg me-1"></i>New Key
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Key Creation -->
+        @if (_showKeyForm)
+        {
+            <div class="fc-card p-4 mb-4">
+                <h5 class="fw-bold mb-3">Create API Key</h5>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" @bind="_newKeyName" placeholder="My App" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Expires in (days, 0=never)</label>
+                        <input type="number" class="form-control" @bind="_newKeyExpiry" min="0" />
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-fc-primary" @onclick="CreateApiKey">Create</button>
+                        <button class="btn btn-outline-secondary ms-2" @onclick="() => _showKeyForm = false">Cancel</button>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(_newKeyValue))
+                {
+                    <div class="alert alert-success mt-3">
+                        <strong>Your API key (copy it now — it won't be shown again):</strong>
+                        <code class="d-block mt-1 user-select-all">@_newKeyValue</code>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- API Keys List -->
+        @if (_apiKeys?.Count > 0)
+        {
+            <div class="fc-card p-4 mb-4">
+                <h5 class="fw-bold mb-3">Your API Keys</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last Used</th><th>Expires</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var key in _apiKeys)
+                            {
+                                <tr>
+                                    <td>@key.Name</td>
+                                    <td><code>@key.KeyPrefix...</code></td>
+                                    <td>@key.CreatedAt.ToString("MMM dd")</td>
+                                    <td>@(key.LastUsedAt?.ToString("MMM dd") ?? "Never")</td>
+                                    <td>@(key.ExpiresAt?.ToString("MMM dd, yyyy") ?? "Never")</td>
+                                    <td><button class="btn btn-sm btn-outline-danger" @onclick="() => RevokeKey(key.Id)">Revoke</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Conversion History -->
+        <div class="fc-card p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Conversions</h5>
+            @if (_history?.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>File</th><th>From</th><th>To</th><th>Status</th><th>Date</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _history)
+                            {
+                                <tr>
+                                    <td>@item.OriginalFileName</td>
+                                    <td><span class="format-badge">@item.SourceFormat</span></td>
+                                    <td><span class="format-badge">@item.TargetFormat</span></td>
+                                    <td>
+                                        @if (item.Status == "Completed") { <span class="badge bg-success">Completed</span> }
+                                        else if (item.Status == "Failed") { <span class="badge bg-danger">Failed</span> }
+                                        else { <span class="badge bg-warning">@item.Status</span> }
+                                    </td>
+                                    <td>@item.CreatedAt.ToString("MMM dd, HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-fc-muted mb-0">No conversions yet. <a href="/" class="text-decoration-none">Start converting!</a></p>
+            }
+        </div>
+
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-secondary" @onclick="Logout">
+                <i class="bi bi-box-arrow-right me-1"></i>Sign Out
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger mt-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>@_error</div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private UserProfileResponse? _profile;
+    private List<ConversionHistoryItem>? _history;
+    private List<ApiKeyInfo>? _apiKeys;
+
+    // API key form
+    private bool _showKeyForm;
+    private string _newKeyName = "";
+    private int _newKeyExpiry;
+    private string? _newKeyValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _profile = await ApiClient.GetProfileAsync();
+            _history = await ApiClient.GetConversionHistoryAsync();
+            _apiKeys = await ApiClient.GetApiKeysAsync();
+        }
+        catch
+        {
+            _profile = null;
+        }
+        finally { _loading = false; }
+    }
+
+    private void ShowCreateKeyForm()
+    {
+        _showKeyForm = true;
+        _newKeyValue = null;
+        _newKeyName = "";
+        _newKeyExpiry = 0;
+    }
+
+    private async Task CreateApiKey()
+    {
+        try
+        {
+            var result = await ApiClient.CreateApiKeyAsync(
+                string.IsNullOrWhiteSpace(_newKeyName) ? "Default" : _newKeyName, _newKeyExpiry);
+            _newKeyValue = result.Key;
+            _apiKeys = await ApiClient.GetApiKeysAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task RevokeKey(Guid id)
+    {
+        try
+        {
+            await ApiClient.RevokeApiKeyAsync(id);
+            _apiKeys = await ApiClient.GetApiKeysAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private void Logout()
+    {
+        ApiClient.ClearAuthToken();
+        Nav.NavigateTo("/");
+    }
+}

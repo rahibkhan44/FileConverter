@@ -155,6 +155,38 @@ public class FileConverterApiClient
         return SplitPdfAsync(fileStream, fileName, pages, cancellationToken);
     }
 
+    public async Task<(Stream Stream, string FileName)> RotatePdfAsync(Stream fileStream, string fileName, int degrees = 90, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(degrees.ToString()), "degrees");
+        var response = await _httpClient.PostAsync("api/v1/pdf/rotate", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> WatermarkPdfAsync(Stream fileStream, string fileName, string text,
+        int fontSize = 48, float opacity = 0.3f, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(text), "text");
+        content.Add(new StringContent(fontSize.ToString()), "fontSize");
+        content.Add(new StringContent(opacity.ToString()), "opacity");
+        var response = await _httpClient.PostAsync("api/v1/pdf/watermark", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<PdfMetadataResponse> GetPdfMetadataAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        var response = await _httpClient.PostAsync("api/v1/pdf/metadata", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<PdfMetadataResponse>(JsonOptions, cancellationToken))!;
+    }
+
     // ═══ Image Tools ═══
 
     public async Task<(Stream Stream, string FileName)> CompressImageAsync(Stream fileStream, string fileName, int quality = 75, CancellationToken cancellationToken = default)
@@ -218,6 +250,83 @@ public class FileConverterApiClient
         var response = await _httpClient.PostAsync("api/v1/image/strip-metadata", content, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    public async Task<(Stream Stream, string FileName)> ColorAdjustImageAsync(Stream fileStream, string fileName,
+        int brightness = 100, int contrast = 100, int saturation = 100, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        content.Add(new StringContent(brightness.ToString()), "brightness");
+        content.Add(new StringContent(contrast.ToString()), "contrast");
+        content.Add(new StringContent(saturation.ToString()), "saturation");
+        var response = await _httpClient.PostAsync("api/v1/image/color-adjust", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadAsStreamAsync(cancellationToken), GetFileName(response, fileName));
+    }
+
+    // ═══ Auth ═══
+
+    public async Task<AuthResponse> RegisterAsync(string email, string password, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/v1/auth/register",
+            new AuthRegisterRequest { Email = email, Password = password }, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<AuthResponse>(JsonOptions, cancellationToken))!;
+    }
+
+    public async Task<AuthResponse> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/v1/auth/login",
+            new AuthLoginRequest { Email = email, Password = password }, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<AuthResponse>(JsonOptions, cancellationToken))!;
+    }
+
+    public void SetAuthToken(string token)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+
+    public void ClearAuthToken()
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = null;
+    }
+
+    public async Task<UserProfileResponse> GetProfileAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("api/v1/auth/me", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<UserProfileResponse>(JsonOptions, cancellationToken))!;
+    }
+
+    public async Task<List<ConversionHistoryItem>> GetConversionHistoryAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"api/v1/auth/history?page={page}&pageSize={pageSize}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<List<ConversionHistoryItem>>(JsonOptions, cancellationToken))!;
+    }
+
+    public async Task<ApiKeyCreateResponse> CreateApiKeyAsync(string name, int expiresInDays = 0, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/v1/auth/api-keys",
+            new { name, expiresInDays }, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<ApiKeyCreateResponse>(JsonOptions, cancellationToken))!;
+    }
+
+    public async Task<List<ApiKeyInfo>> GetApiKeysAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("api/v1/auth/api-keys", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<List<ApiKeyInfo>>(JsonOptions, cancellationToken))!;
+    }
+
+    public async Task RevokeApiKeyAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"api/v1/auth/api-keys/{id}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
     }
 
     private static string GetFileName(HttpResponseMessage response, string fallback)

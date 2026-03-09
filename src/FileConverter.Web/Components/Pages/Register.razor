@@ -1,0 +1,87 @@
+@page "/register"
+@rendermode InteractiveServer
+@inject FileConverterApiClient ApiClient
+@inject NavigationManager Nav
+
+<PageTitle>Register - FileConverter</PageTitle>
+
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-person-plus me-2"></i>Create Account</h1>
+        <p class="lead">Register for free to track conversions, manage API keys, and unlock more features.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="fc-card p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Email</label>
+                    <input type="email" class="form-control" @bind="_email" placeholder="you@example.com" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Password</label>
+                    <input type="password" class="form-control" @bind="_password" placeholder="Min 8 chars, uppercase + digit" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Confirm Password</label>
+                    <input type="password" class="form-control" @bind="_confirmPassword" placeholder="Re-enter password" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger py-2 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>@_error
+                    </div>
+                }
+
+                <button class="btn btn-fc-primary w-100 mb-3" @onclick="HandleRegister" disabled="@_isLoading">
+                    @if (_isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                    Create Account
+                </button>
+
+                <p class="text-center text-fc-muted mb-0">
+                    Already have an account? <a href="/login" class="text-decoration-none">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string _confirmPassword = "";
+    private string? _error;
+    private bool _isLoading;
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Please fill in all fields.";
+            return;
+        }
+        if (_password != _confirmPassword)
+        {
+            _error = "Passwords do not match.";
+            return;
+        }
+
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var result = await ApiClient.RegisterAsync(_email, _password);
+            ApiClient.SetAuthToken(result.Token);
+            Nav.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally { _isLoading = false; }
+    }
+}

@@ -59,7 +59,78 @@ public class PageCountResponse
     public string FileName { get; set; } = string.Empty;
 }
 
+public class PdfMetadataResponse
+{
+    public string? Title { get; set; }
+    public string? Author { get; set; }
+    public string? Subject { get; set; }
+    public string? Keywords { get; set; }
+    public string? Creator { get; set; }
+    public string? Producer { get; set; }
+    public int PageCount { get; set; }
+}
+
 public class ApiError
 {
     public string Error { get; set; } = string.Empty;
+}
+
+// Auth models
+public class AuthRegisterRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class AuthLoginRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class AuthResponse
+{
+    public string Token { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+}
+
+public class UserProfileResponse
+{
+    public string Email { get; set; } = string.Empty;
+    public string Tier { get; set; } = string.Empty;
+    public int DailyConversionLimit { get; set; }
+    public long MaxFileSizeMB { get; set; }
+    public int TotalConversions { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class ConversionHistoryItem
+{
+    public Guid Id { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string SourceFormat { get; set; } = string.Empty;
+    public string TargetFormat { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+}
+
+public class ApiKeyInfo
+{
+    public Guid Id { get; set; }
+    public string KeyPrefix { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+public class ApiKeyCreateResponse
+{
+    public Guid Id { get; set; }
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }

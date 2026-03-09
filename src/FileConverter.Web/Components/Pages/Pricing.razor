@@ -1,0 +1,110 @@
+@page "/pricing"
+
+<PageTitle>Pricing - FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="FileConverter pricing plans. Free tier with 20 conversions/day. Pro and Business plans for power users and teams." />
+    <meta property="og:title" content="Pricing - FileConverter" />
+    <meta property="og:description" content="Free, Pro, and Business plans for file conversion." />
+</HeadContent>
+
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3">Simple, Transparent Pricing</h1>
+        <p class="lead">Start free. Upgrade when you need more power.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row g-4 justify-content-center">
+        <!-- Free -->
+        <div class="col-md-4">
+            <div class="fc-card p-4 h-100 text-center">
+                <h4 class="fw-bold">Free</h4>
+                <div class="display-4 fw-bold my-3">$0</div>
+                <p class="text-fc-muted">Perfect for occasional use</p>
+                <hr />
+                <ul class="list-unstyled text-start">
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>20 conversions/day</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>100 MB max file size</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>50+ formats supported</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>PDF, Image, Document tools</li>
+                    <li class="mb-2"><i class="bi bi-x-lg text-danger me-2"></i>No video/audio</li>
+                    <li class="mb-2"><i class="bi bi-x-lg text-danger me-2"></i>No API access</li>
+                </ul>
+                <a href="/register" class="btn btn-outline-primary w-100 mt-3">Get Started</a>
+            </div>
+        </div>
+
+        <!-- Pro -->
+        <div class="col-md-4">
+            <div class="fc-card p-4 h-100 text-center border-primary" style="border: 2px solid var(--bs-primary) !important;">
+                <span class="badge bg-primary mb-2">Most Popular</span>
+                <h4 class="fw-bold">Pro</h4>
+                <div class="display-4 fw-bold my-3">$9<small class="fs-5 fw-normal text-fc-muted">.99/mo</small></div>
+                <p class="text-fc-muted">For professionals and creators</p>
+                <hr />
+                <ul class="list-unstyled text-start">
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>500 conversions/day</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>1 GB max file size</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>All formats incl. video/audio</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>All tools included</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>Priority processing</li>
+                    <li class="mb-2"><i class="bi bi-x-lg text-danger me-2"></i>No API access</li>
+                </ul>
+                <button class="btn btn-fc-primary w-100 mt-3" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <!-- Business -->
+        <div class="col-md-4">
+            <div class="fc-card p-4 h-100 text-center">
+                <h4 class="fw-bold">Business</h4>
+                <div class="display-4 fw-bold my-3">$29<small class="fs-5 fw-normal text-fc-muted">.99/mo</small></div>
+                <p class="text-fc-muted">For teams and enterprises</p>
+                <hr />
+                <ul class="list-unstyled text-start">
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>Unlimited conversions</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>5 GB max file size</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>All formats incl. video/audio</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>All tools included</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>Priority queue</li>
+                    <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i>API access + webhooks</li>
+                </ul>
+                <button class="btn btn-outline-primary w-100 mt-3" disabled>Coming Soon</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-8">
+            <h3 class="fw-bold text-center mb-4">Frequently Asked Questions</h3>
+            <div class="accordion" id="pricingFaq">
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">Do I need an account to use FileConverter?</button></h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#pricingFaq">
+                        <div class="accordion-body">No! You can convert files without signing up. Creating an account gives you conversion history, higher limits, and API access on paid plans.</div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">What payment methods do you accept?</button></h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                        <div class="accordion-body">We'll accept all major credit cards, debit cards, and PayPal via Stripe when billing goes live.</div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">Can I cancel anytime?</button></h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                        <div class="accordion-body">Yes. You can cancel your subscription at any time. You'll retain access until the end of your billing period.</div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">Are my files secure?</button></h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                        <div class="accordion-body">All files are automatically deleted after 2 hours. We use HTTPS encryption for all transfers and never share your files with third parties.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,197 @@
+@page "/formats/{Extension}"
+@using FileConverter.Shared
+
+<PageTitle>@_friendlyName Converter - Convert @_upper Online | FileConverter</PageTitle>
+<HeadContent>
+    <meta name="description" content="Convert @_friendlyName (@_upper) files online for free. @_targetCount output formats supported. No signup required." />
+    <meta property="og:title" content="@_friendlyName Converter | FileConverter" />
+    <meta property="og:description" content="Convert @_upper to @_targetCount+ formats instantly. Free, fast, and secure." />
+</HeadContent>
+
+@if (!_isValid)
+{
+    <section class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-5 mb-3">Format Not Found</h1>
+            <p class="lead">The format "<strong>@Extension</strong>" is not supported. <a href="/formats">Browse all formats</a>.</p>
+        </div>
+    </section>
+}
+else
+{
+    <!-- Hero -->
+    <section class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-5 mb-3">
+                <span class="format-badge format-badge-@_categoryLower me-2" style="font-size: 1.5rem;">@_upper</span>
+                @_friendlyName
+            </h1>
+            <p class="lead mb-0">Convert @_upper files to @_targetCount different formats. Free and instant.</p>
+        </div>
+    </section>
+
+    <div class="container pb-5">
+        <!-- Format info -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8">
+                <div class="fc-card p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="fs-1 fw-bold" style="color: var(--fc-primary);">@_upper</div>
+                                <small class="text-fc-muted">@_friendlyName</small>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr><td class="fw-medium">Format</td><td>@_friendlyName</td></tr>
+                                    <tr><td class="fw-medium">Extension</td><td>.@_ext</td></tr>
+                                    <tr><td class="fw-medium">Category</td><td>@_category</td></tr>
+                                    <tr><td class="fw-medium">Convertible to</td><td>@_targetCount formats</td></tr>
+                                    @if (_isReadOnly)
+                                    {
+                                        <tr><td class="fw-medium">Note</td><td class="text-warning">Input only (read-only format)</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversion grid -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8">
+                <h3 class="fw-bold mb-3">Convert @_upper to...</h3>
+                <div class="row g-3">
+                    @foreach (var target in _targets)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <a href="/convert/@_ext-to-@target" class="format-grid-item text-decoration-none">
+                                <span class="format-badge format-badge-@_categoryLower">@_upper</span>
+                                <i class="bi bi-arrow-right text-fc-muted"></i>
+                                <span class="format-badge format-badge-@(ClientSupportedFormats.GetCategory(target).ToLowerInvariant())">@target.ToUpperInvariant()</span>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Convert from (formats that can convert TO this format) -->
+        @if (_sourcesForThis.Count > 0)
+        {
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-8">
+                    <h3 class="fw-bold mb-3">Convert to @_upper from...</h3>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var src in _sourcesForThis)
+                        {
+                            <a href="/convert/@src-to-@_ext"
+                               class="badge text-decoration-none bg-fc-surface text-fc-muted border px-3 py-2">
+                                @src.ToUpperInvariant()
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- How to convert -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-lg-8">
+                <div class="fc-card p-4">
+                    <h3 class="fw-bold mb-3">How to convert @_upper files</h3>
+                    <ol class="mb-0">
+                        <li class="mb-2">Go to the <a href="/">converter page</a> or click a conversion link above</li>
+                        <li class="mb-2">Upload your @_upper file (drag & drop or click to browse)</li>
+                        <li class="mb-2">Select the output format</li>
+                        <li class="mb-2">Click <strong>Convert</strong> and download your file</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related formats -->
+        @if (_relatedFormats.Count > 0)
+        {
+            <div class="row justify-content-center mt-4">
+                <div class="col-lg-8">
+                    <h3 class="fw-bold mb-3">Related @_category Formats</h3>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var fmt in _relatedFormats)
+                        {
+                            <a href="/formats/@fmt"
+                               class="format-grid-item text-decoration-none" style="width: auto;">
+                                <span class="format-badge format-badge-@_categoryLower">@fmt.ToUpperInvariant()</span>
+                                <span class="small">@ClientSupportedFormats.GetFriendlyName(fmt)</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Extension { get; set; } = "";
+
+    private string _ext = "";
+    private string _upper = "";
+    private string _friendlyName = "";
+    private string _category = "";
+    private string _categoryLower = "";
+    private bool _isValid;
+    private bool _isReadOnly;
+    private int _targetCount;
+    private List<string> _targets = new();
+    private List<string> _sourcesForThis = new();
+    private List<string> _relatedFormats = new();
+
+    private static readonly HashSet<string> ReadOnlyFormats = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "heic", "heif", "dng", "cr2", "nef", "arw", "orf", "raf", "rw2", "psd", "eps"
+    };
+
+    private static readonly HashSet<string> Aliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "jpeg", "tif", "htm", "markdown", "heif", "j2k", "jpeg2000", "text", "oga", "mts"
+    };
+
+    protected override void OnParametersSet()
+    {
+        _ext = Extension.TrimStart('.').ToLowerInvariant();
+        _upper = _ext.ToUpperInvariant();
+        _friendlyName = ClientSupportedFormats.GetFriendlyName(_ext);
+        _category = ClientSupportedFormats.GetCategory(_ext);
+        _categoryLower = _category.ToLowerInvariant();
+        _isReadOnly = ReadOnlyFormats.Contains(_ext);
+
+        _targets = ClientSupportedFormats.GetTargetFormats(_ext);
+        _targetCount = _targets.Count;
+        _isValid = _targetCount > 0;
+
+        if (_isValid)
+        {
+            // Find all formats that can convert TO this format
+            _sourcesForThis = ClientSupportedFormats.GetAll()
+                .Where(kv => !Aliases.Contains(kv.Key) && kv.Value.Contains(_ext, StringComparer.OrdinalIgnoreCase))
+                .Select(kv => kv.Key)
+                .OrderBy(x => x)
+                .ToList();
+
+            // Related formats in same category
+            _relatedFormats = ClientSupportedFormats.GetAll()
+                .Where(kv => !Aliases.Contains(kv.Key)
+                    && !kv.Key.Equals(_ext, StringComparison.OrdinalIgnoreCase)
+                    && ClientSupportedFormats.GetCategory(kv.Key) == _category)
+                .Select(kv => kv.Key)
+                .OrderBy(x => x)
+                .Take(12)
+                .ToList();
+        }
+    }
+}

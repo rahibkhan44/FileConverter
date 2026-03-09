@@ -6,20 +6,33 @@ services:
       context: .
       dockerfile: Dockerfile
       target: api
+    container_name: fileconverter-api
     ports:
       - "5001:5001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5001
+      - ConnectionStrings__DefaultConnection=Data Source=/data/fileconverter.db
+      - Jwt__Key=${JWT_KEY:-FileConverterProductionSecretKey2024!ChangeThisInProd}
+      - Jwt__Issuer=FileConverter
+      - Jwt__Audience=FileConverter
     volumes:
       - fileconverter-temp:/tmp/fileconverter
+      - fileconverter-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   web:
     build:
       context: .
       dockerfile: Dockerfile
       target: web
+    container_name: fileconverter-web
     ports:
       - "5002:5002"
     environment:
@@ -27,8 +40,16 @@ services:
       - ASPNETCORE_URLS=http://+:5002
       - ApiBaseUrl=http://api:5001
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   fileconverter-temp:
+  fileconverter-data:

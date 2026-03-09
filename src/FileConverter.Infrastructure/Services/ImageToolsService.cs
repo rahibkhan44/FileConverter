@@ -101,6 +101,28 @@ public class ImageToolsService
     }
 
     /// <summary>
+    /// Adjusts image color: brightness, contrast, saturation.
+    /// Values are percentages: 100 = no change, >100 = increase, <100 = decrease.
+    /// </summary>
+    public string AdjustColor(string inputPath, string outputPath, int brightness = 100, int contrast = 100, int saturation = 100)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        using var image = new MagickImage(inputPath);
+
+        if (brightness != 100)
+            image.BrightnessContrast(new Percentage(brightness - 100), new Percentage(0));
+
+        if (contrast != 100)
+            image.BrightnessContrast(new Percentage(0), new Percentage(contrast - 100));
+
+        if (saturation != 100)
+            image.Modulate(new Percentage(100), new Percentage(saturation), new Percentage(100));
+
+        image.Write(outputPath);
+        return outputPath;
+    }
+
+    /// <summary>
     /// Reads image metadata (dimensions, format, EXIF data).
     /// </summary>
     public ImageMetadata GetMetadata(string inputPath)

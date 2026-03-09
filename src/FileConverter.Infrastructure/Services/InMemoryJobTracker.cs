@@ -35,4 +35,10 @@ public class InMemoryJobTracker : IJobTracker
     {
         return _jobs.Values.Where(j => j.Status == ConversionStatus.Pending).OrderBy(j => j.CreatedAt);
     }
+
+    public void UpdateJob(ConversionJob job)
+    {
+        // In-memory: object is already mutated in place, nothing to persist
+        _jobs[job.Id] = job;
+    }
 }

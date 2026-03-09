@@ -1,0 +1,77 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject FileConverterApiClient ApiClient
+@inject NavigationManager Nav
+
+<PageTitle>Login - FileConverter</PageTitle>
+
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 mb-3"><i class="bi bi-box-arrow-in-right me-2"></i>Login</h1>
+        <p class="lead">Sign in to access your dashboard, conversion history, and API keys.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="fc-card p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Email</label>
+                    <input type="email" class="form-control" @bind="_email" placeholder="you@example.com" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Password</label>
+                    <input type="password" class="form-control" @bind="_password" placeholder="Enter your password" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger py-2 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>@_error
+                    </div>
+                }
+
+                <button class="btn btn-fc-primary w-100 mb-3" @onclick="HandleLogin" disabled="@_isLoading">
+                    @if (_isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                    Sign In
+                </button>
+
+                <p class="text-center text-fc-muted mb-0">
+                    Don't have an account? <a href="/register" class="text-decoration-none">Register</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _isLoading;
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Please enter your email and password.";
+            return;
+        }
+
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var result = await ApiClient.LoginAsync(_email, _password);
+            ApiClient.SetAuthToken(result.Token);
+            Nav.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("401") ? "Invalid email or password." : ex.Message;
+        }
+        finally { _isLoading = false; }
+    }
+}
