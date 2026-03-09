@@ -138,6 +138,100 @@ public class PdfToolsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Rotates all pages of a PDF by the specified degrees (90, 180, 270).
+    /// </summary>
+    [HttpPost("rotate")]
+    [RequestSizeLimit(524_288_000)]
+    public async Task<IActionResult> Rotate([FromForm] IFormFile file, [FromForm] int degrees = 90)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No PDF file provided." });
+        if (degrees % 90 != 0)
+            return BadRequest(new { error = "Degrees must be a multiple of 90." });
+
+        var tempDir = Path.Combine(Path.GetTempPath(), "fileconverter", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var inputPath = Path.Combine(tempDir, file.FileName);
+            await using (var fs = new FileStream(inputPath, FileMode.Create))
+                await file.CopyToAsync(fs);
+
+            var outputPath = Path.Combine(tempDir, $"rotated_{file.FileName}");
+            _pdfTools.RotatePages(inputPath, outputPath, degrees);
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(outputPath);
+            return File(bytes, "application/pdf", $"rotated_{file.FileName}");
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Adds a text watermark to every page of a PDF.
+    /// </summary>
+    [HttpPost("watermark")]
+    [RequestSizeLimit(524_288_000)]
+    public async Task<IActionResult> Watermark([FromForm] IFormFile file, [FromForm] string text,
+        [FromForm] double fontSize = 48, [FromForm] double opacity = 0.3)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No PDF file provided." });
+        if (string.IsNullOrWhiteSpace(text))
+            return BadRequest(new { error = "Watermark text is required." });
+
+        var tempDir = Path.Combine(Path.GetTempPath(), "fileconverter", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var inputPath = Path.Combine(tempDir, file.FileName);
+            await using (var fs = new FileStream(inputPath, FileMode.Create))
+                await file.CopyToAsync(fs);
+
+            var outputPath = Path.Combine(tempDir, $"watermarked_{file.FileName}");
+            _pdfTools.AddWatermark(inputPath, outputPath, text, fontSize, opacity);
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(outputPath);
+            return File(bytes, "application/pdf", $"watermarked_{file.FileName}");
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Reads PDF metadata (title, author, subject, etc.).
+    /// </summary>
+    [HttpPost("metadata")]
+    [RequestSizeLimit(524_288_000)]
+    public async Task<IActionResult> GetMetadata([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No PDF file provided." });
+
+        var tempPath = Path.Combine(Path.GetTempPath(), "fileconverter", Guid.NewGuid().ToString() + ".pdf");
+        Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+
+        try
+        {
+            await using (var fs = new FileStream(tempPath, FileMode.Create))
+                await file.CopyToAsync(fs);
+
+            var metadata = _pdfTools.GetMetadata(tempPath);
+            return Ok(metadata);
+        }
+        finally
+        {
+            try { System.IO.File.Delete(tempPath); } catch { }
+        }
+    }
+
     private static List<(int Start, int End)> ParsePageRanges(string pages)
     {
         var ranges = new List<(int, int)>();

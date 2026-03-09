@@ -193,6 +193,30 @@ public class ImageToolsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Adjusts image color: brightness, contrast, saturation (100 = no change).
+    /// </summary>
+    [HttpPost("color-adjust")]
+    [RequestSizeLimit(524_288_000)]
+    public async Task<IActionResult> ColorAdjust([FromForm] IFormFile file,
+        [FromForm] int brightness = 100, [FromForm] int contrast = 100, [FromForm] int saturation = 100)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No image file provided." });
+
+        var (inputPath, outputPath, tempDir) = await SaveToTemp(file, "adjusted_");
+        try
+        {
+            _imageTools.AdjustColor(inputPath, outputPath, brightness, contrast, saturation);
+            var bytes = await System.IO.File.ReadAllBytesAsync(outputPath);
+            return File(bytes, GetContentType(file.FileName), $"adjusted_{file.FileName}");
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
     private async Task<(string InputPath, string OutputPath, string TempDir)> SaveToTemp(IFormFile file, string prefix)
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "fileconverter", Guid.NewGuid().ToString());

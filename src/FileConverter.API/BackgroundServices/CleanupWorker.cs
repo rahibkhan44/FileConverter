@@ -7,10 +7,13 @@ public class CleanupWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CleanupWorker> _logger;
 
-    public CleanupWorker(IServiceProvider serviceProvider, ILogger<CleanupWorker> logger)
+    private readonly IConfiguration _config;
+
+    public CleanupWorker(IServiceProvider serviceProvider, ILogger<CleanupWorker> logger, IConfiguration config)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _config = config;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -24,7 +27,8 @@ public class CleanupWorker : BackgroundService
                 var jobTracker = scope.ServiceProvider.GetRequiredService<IJobTracker>();
                 var rateLimit = scope.ServiceProvider.GetRequiredService<IRateLimitService>();
 
-                var maxAge = TimeSpan.FromHours(1);
+                var expiryHours = _config.GetValue("FileConverter:JobExpiryHours", 2);
+                var maxAge = TimeSpan.FromHours(expiryHours);
                 storage.CleanupExpiredFiles(maxAge);
                 jobTracker.CleanupExpired(maxAge);
                 rateLimit.ResetExpiredCounters();
