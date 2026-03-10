@@ -17,4 +17,5 @@ public class ConversionJob
     public DateTime? CompletedAt { get; set; }
     public Dictionary<string, string> Options { get; set; } = new();
     public Guid? BatchJobId { get; set; }
+    public string? CallbackUrl { get; set; }
 }

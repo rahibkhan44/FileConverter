@@ -2,6 +2,7 @@ using FileConverter.API.Hubs;
 using FileConverter.Domain.Enums;
 using FileConverter.Domain.Interfaces;
 using FileConverter.Infrastructure.Converters;
+using FileConverter.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace FileConverter.API.BackgroundServices;
@@ -11,6 +12,7 @@ public class ConversionWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IJobQueue _jobQueue;
     private readonly IHubContext<ConversionProgressHub> _hubContext;
+    private readonly IWebhookService _webhookService;
     private readonly ILogger<ConversionWorker> _logger;
     private readonly SemaphoreSlim _semaphore = new(4);
 
@@ -18,11 +20,13 @@ public class ConversionWorker : BackgroundService
         IServiceProvider serviceProvider,
         IJobQueue jobQueue,
         IHubContext<ConversionProgressHub> hubContext,
+        IWebhookService webhookService,
         ILogger<ConversionWorker> logger)
     {
         _serviceProvider = serviceProvider;
         _jobQueue = jobQueue;
         _hubContext = hubContext;
+        _webhookService = webhookService;
         _logger = logger;
     }
 
@@ -101,6 +105,17 @@ public class ConversionWorker : BackgroundService
 
             _logger.LogInformation("Converted {File} from {Source} to {Target}",
                 job.OriginalFileName, job.SourceFormat, job.TargetFormat);
+
+            if (!string.IsNullOrEmpty(job.CallbackUrl))
+            {
+                await _webhookService.SendWebhookAsync(job.CallbackUrl, new
+                {
+                    jobId = job.Id,
+                    status = "Completed",
+                    originalFileName = job.OriginalFileName,
+                    downloadUrl = $"/api/v1/convert/{job.Id}/download"
+                }, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
@@ -113,6 +128,17 @@ public class ConversionWorker : BackgroundService
                 await batchGroup.SendAsync("BatchJobFailed", job.BatchJobId, jobId, ex.Message, cancellationToken);
 
             _logger.LogError(ex, "Failed to convert {File}", job.OriginalFileName);
+
+            if (!string.IsNullOrEmpty(job.CallbackUrl))
+            {
+                await _webhookService.SendWebhookAsync(job.CallbackUrl, new
+                {
+                    jobId = job.Id,
+                    status = "Failed",
+                    originalFileName = job.OriginalFileName,
+                    errorMessage = ex.Message
+                }, cancellationToken);
+            }
         }
     }
 }

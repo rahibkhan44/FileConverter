@@ -24,7 +24,7 @@ public class ConversionService
     }
 
     public async Task<ConvertResponse> CreateJobAsync(Stream fileStream, string fileName, string targetFormatStr,
-        Dictionary<string, string>? options, string ipAddress, CancellationToken cancellationToken)
+        Dictionary<string, string>? options, string ipAddress, CancellationToken cancellationToken, string? callbackUrl = null)
     {
         if (!_rateLimit.IsAllowed(ipAddress))
             throw new InvalidOperationException("Daily conversion limit reached. Try again tomorrow.");
@@ -52,7 +52,8 @@ public class ConversionService
             InputFilePath = savedPath,
             SourceFormat = sourceFormat,
             TargetFormat = targetFormat,
-            Options = options ?? new()
+            Options = options ?? new(),
+            CallbackUrl = callbackUrl
         };
 
         _jobTracker.AddJob(job);

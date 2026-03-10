@@ -120,6 +120,13 @@ builder.Services.AddSingleton<ConversionEngineFactory>();
 builder.Services.AddSingleton<PdfToolsService>();
 builder.Services.AddSingleton<ImageToolsService>();
 
+// Webhook support
+builder.Services.AddHttpClient("Webhooks");
+builder.Services.AddSingleton<IWebhookService, WebhookService>();
+
+// Tier enforcement
+builder.Services.AddScoped<ITierEnforcementService, TierEnforcementService>();
+
 // Application services
 builder.Services.AddScoped<ConversionService>();
 

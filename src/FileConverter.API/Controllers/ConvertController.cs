@@ -2,6 +2,7 @@ using FileConverter.Application.Services;
 using FileConverter.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
+using Microsoft.Extensions.Logging;
 
 namespace FileConverter.API.Controllers;
 
@@ -12,29 +13,56 @@ public class ConvertController : ControllerBase
     private readonly ConversionService _conversionService;
     private readonly IJobTracker _jobTracker;
     private readonly IFileStorageService _storage;
+    private readonly ILogger<ConvertController> _logger;
+    private readonly ITierEnforcementService _tierEnforcement;
 
-    public ConvertController(ConversionService conversionService, IJobTracker jobTracker, IFileStorageService storage)
+    public ConvertController(
+        ConversionService conversionService,
+        IJobTracker jobTracker,
+        IFileStorageService storage,
+        ILogger<ConvertController> logger,
+        ITierEnforcementService tierEnforcement)
     {
         _conversionService = conversionService;
         _jobTracker = jobTracker;
         _storage = storage;
+        _logger = logger;
+        _tierEnforcement = tierEnforcement;
     }
 
     [HttpPost]
     [RequestSizeLimit(52_428_800)] // 50MB
     public async Task<IActionResult> Convert([FromForm] IFormFile file, [FromForm] string targetFormat,
-        [FromForm] string? options = null, CancellationToken cancellationToken = default)
+        [FromForm] string? options = null, [FromForm] string? callbackUrl = null, CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file provided." });
 
+        // Validate file signature (magic bytes) against declared extension
+        using var validationStream = file.OpenReadStream();
+        var (isValid, detectedMimeType) = MimeValidator.ValidateFileSignature(validationStream, file.FileName, _logger);
+        if (!isValid)
+        {
+            return BadRequest(new { error = $"File type mismatch: the file content does not match the extension '{Path.GetExtension(file.FileName)}'. Detected type: {detectedMimeType ?? "unknown"}." });
+        }
+        await validationStream.DisposeAsync();
+
         var optionsDict = ParseOptions(options);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        // Tier enforcement: check limits before processing
+        var sourceExt = Path.GetExtension(file.FileName).TrimStart('.');
+        var (tierAllowed, tierReason) = await _tierEnforcement.ValidateConversionRequestAsync(
+            User, ip, file.Length, sourceExt, targetFormat);
+        if (!tierAllowed)
+        {
+            return StatusCode(403, new { error = tierReason });
+        }
 
         try
         {
             using var stream = file.OpenReadStream();
-            var result = await _conversionService.CreateJobAsync(stream, file.FileName, targetFormat, optionsDict, ip, cancellationToken);
+            var result = await _conversionService.CreateJobAsync(stream, file.FileName, targetFormat, optionsDict, ip, cancellationToken, callbackUrl);
             return Accepted(result);
         }
         catch (InvalidOperationException ex)
@@ -83,8 +111,31 @@ public class ConvertController : ControllerBase
         if (files.Count > 100)
             return BadRequest(new { error = "Maximum 100 files per batch." });
 
+        // Validate file signatures for all files in the batch
+        foreach (var file in files)
+        {
+            using var valStream = file.OpenReadStream();
+            var (isFileValid, detectedMime) = MimeValidator.ValidateFileSignature(valStream, file.FileName, _logger);
+            if (!isFileValid)
+            {
+                return BadRequest(new { error = $"File type mismatch for '{file.FileName}': the file content does not match the extension '{Path.GetExtension(file.FileName)}'. Detected type: {detectedMime ?? "unknown"}." });
+            }
+        }
+
         var optionsDict = ParseOptions(options);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        // Tier enforcement: check limits for each file in the batch
+        foreach (var file in files)
+        {
+            var batchSourceExt = Path.GetExtension(file.FileName).TrimStart('.');
+            var (batchAllowed, batchReason) = await _tierEnforcement.ValidateConversionRequestAsync(
+                User, ip, file.Length, batchSourceExt, targetFormat);
+            if (!batchAllowed)
+            {
+                return StatusCode(403, new { error = batchReason, file = file.FileName });
+            }
+        }
 
         try
         {
